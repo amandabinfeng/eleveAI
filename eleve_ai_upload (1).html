@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Élevé AI — Real Video Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1B2A4A;--navy-mid:#253660;--navy-light:#334878;--navy-pale:#E8EDF7;--navy-muted:#8FA4C8;
+  --blush:#E8A0A8;--blush-light:#F7E4E7;--blush-dark:#C4606C;--blush-deep:#8B3040;
+  --gold:#C9A96E;--gold-light:#F5EDD8;
+  --ink:#12192B;--ink-mid:#3A4A6B;--ink-soft:#8A96B0;
+  --surface:#F2F4F8;--white:#FFFFFF;--border:#DCE3F0;
+  --green:#3A7D5A;--green-light:#E4F2EA;
+}
+html,body{
+  min-height:100vh;background:#C8D0E0;font-family:'DM Sans',sans-serif;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.shell{
+  width:100%;max-width:420px;background:var(--surface);
+  border-radius:36px;border:2.5px solid var(--navy);
+  overflow:hidden;position:relative;
+  box-shadow:0 20px 60px rgba(0,0,0,.25), 4px 4px 0 var(--navy-pale);
+  min-height:780px;display:flex;flex-direction:column;
+}
+.notch{width:80px;height:22px;background:var(--navy);border-radius:0 0 14px 14px;margin:0 auto;flex-shrink:0}
+.status{display:flex;justify-content:space-between;padding:5px 18px;font-size:10px;color:var(--ink-soft);font-weight:500;flex-shrink:0}
+.scroll{flex:1;overflow-y:auto;padding-bottom:72px}
+.scroll::-webkit-scrollbar{display:none}
+*{scrollbar-width:none}
+
+/* NAV */
+.nav{display:flex;justify-content:space-around;padding:8px 0;border-top:.5px solid var(--border);background:var(--white);position:absolute;bottom:0;left:0;right:0;height:60px;z-index:10}
+.ni{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;flex:1}
+.ni svg{width:18px;height:18px;stroke:var(--ink-soft);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ni span{font-size:8px;color:var(--ink-soft);letter-spacing:.04em}
+.ni.act svg{stroke:var(--navy)}
+.ni.act span{color:var(--navy);font-weight:500}
+.ni-dot{width:4px;height:4px;border-radius:50%;background:var(--navy);margin:0 auto;opacity:0}
+.ni.act .ni-dot{opacity:1}
+
+/* TYPOGRAPHY */
+.htitle{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--navy);font-weight:600}
+.sec-lbl{font-size:9px;color:var(--ink-soft);letter-spacing:.09em;text-transform:uppercase;padding:0 14px;margin-bottom:5px;font-weight:500;display:block}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:500}
+
+/* LAYOUT */
+.hdr{padding:10px 16px 6px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.back{width:30px;height:30px;border-radius:50%;border:.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink-mid);cursor:pointer}
+.card{margin:0 14px 9px;padding:12px 13px;border-radius:14px;border:.5px solid var(--border);background:var(--white)}
+
+/* BUTTONS */
+.btn{display:block;width:calc(100% - 28px);margin:12px 14px 0;padding:13px;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;text-align:center;border:none;transition:opacity .15s}
+.btn-primary{background:var(--navy);color:var(--white)}
+.btn-primary:disabled{opacity:.35;cursor:default}
+.btn-outline{background:transparent;color:var(--ink-mid);border:.5px solid var(--border) !important}
+
+/* SCORE RING */
+.ring-wrap{display:flex;justify-content:center;margin:10px 0 4px}
+.ring{position:relative;width:100px;height:100px}
+.ring svg{width:100%;height:100%}
+.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.ring-num{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--navy);font-weight:600;line-height:1}
+.ring-lbl{font-size:9px;color:var(--ink-soft);letter-spacing:.04em;margin-top:1px}
+
+/* DIMS */
+.dim-row{display:flex;align-items:center;gap:8px;margin:0 14px 7px}
+.dim-name{font-size:10px;color:var(--ink-mid);width:68px;flex-shrink:0}
+.dim-bg{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.dim-fill{height:100%;border-radius:3px}
+.dim-val{font-size:10px;color:var(--ink-soft);width:24px;text-align:right;flex-shrink:0}
+
+/* CHIP */
+.chip{display:flex;align-items:flex-start;gap:8px;margin:0 14px 8px;padding:10px;border-radius:12px;border:.5px solid var(--border);background:var(--white)}
+.chip-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.chip-text{font-size:10px;color:var(--ink-mid);line-height:1.55}
+.chip-time{font-size:9px;color:var(--ink-soft);margin-top:2px;font-weight:500}
+
+/* UPLOAD ZONE */
+.drop-zone{
+  margin:10px 14px;border-radius:14px;
+  border:1.5px dashed var(--border);padding:24px 14px;
+  text-align:center;background:var(--navy-pale);cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--navy);background:#dde4f2}
+.drop-zone.has-file{border-color:var(--green);background:var(--green-light)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* STEP ROW */
+.step-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:.5px solid var(--border)}
+.step-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* PROGRESS */
+.prog-wrap{padding:0 14px;margin-bottom:16px}
+.prog-label{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-soft);margin-bottom:5px}
+.prog-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--navy),var(--blush-dark));border-radius:2px;transition:width .5s ease}
+
+/* FRAMES PREVIEW */
+.frames-grid{display:flex;gap:6px;padding:0 14px;overflow-x:auto;margin-bottom:10px}
+.frame-thumb{width:60px;height:46px;border-radius:8px;flex-shrink:0;overflow:hidden;border:.5px solid var(--border);background:var(--navy-pale)}
+.frame-thumb img{width:100%;height:100%;object-fit:cover}
+.frame-thumb.analyzing{border-color:var(--blush-dark);animation:pulse .8s ease infinite alternate}
+.frame-thumb.done{border-color:var(--green)}
+@keyframes pulse{from{opacity:.7}to{opacity:1}}
+
+/* HERO */
+.hero{margin:0 14px 14px;border-radius:18px;padding:16px;position:relative;overflow:hidden;background:var(--navy);min-height:110px}
+.hero-orb1{position:absolute;top:-24px;right:-24px;width:110px;height:110px;border-radius:50%;background:var(--navy-light);opacity:.5;pointer-events:none}
+.hero-orb2{position:absolute;bottom:-28px;right:24px;width:75px;height:75px;border-radius:50%;background:var(--blush-dark);opacity:.2;pointer-events:none}
+
+/* BANNER */
+.banner{margin:0 14px 10px;padding:10px 13px;border-radius:12px;font-size:10px;line-height:1.65}
+
+/* VIDEO PREVIEW */
+.video-preview-wrap{margin:0 14px 10px;border-radius:14px;overflow:hidden;background:#000;position:relative}
+.video-preview-wrap video{width:100%;max-height:200px;object-fit:contain;display:block}
+.video-overlay-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);color:white;font-size:9px;padding:3px 8px;border-radius:8px;letter-spacing:.04em}
+
+/* STYLE PILLS */
+.style-pills{display:flex;gap:7px;padding:0 14px;margin-bottom:4px;flex-wrap:wrap}
+.style-pill{padding:6px 13px;border-radius:20px;font-size:11px;cursor:pointer;border:.5px solid var(--border);color:var(--ink-soft);background:var(--white);transition:all .15s}
+.style-pill.sel{background:var(--navy);color:var(--white);border-color:var(--navy)}
+
+/* PROFILE */
+.avatar{width:62px;height:62px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--white);font-style:italic;border:1.5px solid var(--blush)}
+
+/* HISTORY */
+.hist-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:.5px solid var(--border)}
+.hist-thumb{width:38px;height:38px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.hist-thumb img{width:100%;height:100%;object-fit:cover}
+
+/* STATS */
+.stats-row{display:flex;gap:8px;padding:0 14px;margin-bottom:14px}
+.stat-card{flex:1;background:var(--navy-pale);border-radius:12px;padding:9px;text-align:center}
+.stat-num{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--navy);font-weight:600;line-height:1.1}
+.stat-lbl{font-size:9px;color:var(--ink-soft);letter-spacing:.04em;margin-top:1px}
+
+/* FEAT CARD */
+.feat-card{margin:0 14px 9px;padding:12px 13px;border-radius:14px;border:.5px solid var(--border);background:var(--white);cursor:pointer;display:flex;align-items:center;gap:12px}
+.feat-card:hover{box-shadow:0 2px 12px rgba(27,42,74,.1)}
+.feat-icon{width:52px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+/* TEXTAREA */
+textarea{
+  width:calc(100% - 28px);margin:8px 14px 0;border-radius:12px;
+  border:.5px solid var(--border);padding:10px 12px;
+  font-family:'DM Sans',sans-serif;font-size:11px;color:var(--ink);
+  background:var(--white);resize:none;outline:none;display:block;
+}
+textarea:focus{border-color:var(--navy)}
+
+/* LOADING DOTS */
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+.ldot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--navy);margin:0 2px;animation:blink 1.2s ease infinite}
+.ldot:nth-child(2){animation-delay:.2s}
+.ldot:nth-child(3){animation-delay:.4s}
+
+/* INLINE FRAME GRID */
+.inline-frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;padding:0 14px;margin-bottom:10px}
+.inline-frame{border-radius:8px;overflow:hidden;aspect-ratio:4/3;background:var(--navy-pale);border:.5px solid var(--border)}
+.inline-frame img{width:100%;height:100%;object-fit:cover;display:block}
+
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.shimmer{background:linear-gradient(90deg,var(--border) 25%,var(--navy-pale) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+</style>
+</head>
+<body>
+<div class="shell" id="app"></div>
+
+<!-- Hidden video element for frame extraction -->
+<video id="extractor-video" style="display:none" crossorigin="anonymous" preload="auto"></video>
+<canvas id="frame-canvas" style="display:none"></canvas>
+
+<svg style="display:none">
+<defs>
+<g id="arab">
+  <circle cx="22" cy="7" r="4.2" fill="#8B3040"/>
+  <ellipse cx="25.5" cy="4" rx="2.5" ry="1.8" fill="#8B3040"/>
+  <path d="M22 11.2 L21.5 14" stroke="#8B3040" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M21.5 14 C21 17 20.5 20 20 23" stroke="#8B3040" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M20 23 C14 22 9 23 7 25 C9 27 14 28 20 27 C26 28 31 27 33 25 C31 23 26 22 20 23Z" fill="#C4606C" opacity="0.85"/>
+  <path d="M20 27 L19 38 L18.5 44" stroke="#8B3040" stroke-width="2" stroke-linecap="round"/>
+  <path d="M18.5 44 C17.5 46 16 47.5 14.5 48.5" stroke="#8B3040" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M20 27 C24 28 30 29 36 30 C40 30.5 44 31 47 32" stroke="#8B3040" stroke-width="2" stroke-linecap="round"/>
+  <path d="M21 17 C18 15 14 13 10 12 C8 11.5 6 11.5 4.5 12" stroke="#8B3040" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M21 17 C24 15 27 14 30 14.5 C32 15 33 16 33.5 17.5" stroke="#8B3040" stroke-width="1.6" stroke-linecap="round"/>
+</g>
+</defs>
+</svg>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────────
+const S = {
+  page: 'home',           // home | analysis | profile
+  view: 'upload',         // upload | processing | report
+  file: null,             // File object
+  fileName: '',
+  videoURL: '',
+  style: 'Classical',
+  description: '',
+  progress: 0,
+  progressLabel: '',
+  frames: [],             // Array of base64 jpeg strings
+  frameThumbs: [],        // Small thumbnails for display
+  report: null,
+  history: [],
+  error: null,
+};
+
+function poseIcon(id='arab', size=44) {
+  return `<svg width="${size}" height="${Math.round(size*1.2)}" viewBox="0 0 56 68" fill="none"><use href="#${id}"/></svg>`;
+}
+
+// ── FRAME EXTRACTOR ────────────────────────────────────────────────────────────
+async function extractFrames(file, count=10) {
+  return new Promise((resolve, reject) => {
+    const video = document.getElementById('extractor-video');
+    const canvas = document.getElementById('frame-canvas');
+    const ctx = canvas.getContext('2d');
+    const url = URL.createObjectURL(file);
+    video.src = url;
+
+    video.onloadedmetadata = async () => {
+      const duration = video.duration;
+      canvas.width = 640;
+      canvas.height = Math.round(640 * video.videoHeight / video.videoWidth) || 480;
+
+      const frames = [];
+      const thumbs = [];
+      const times = [];
+      for (let i = 0; i < count; i++) {
+        times.push((duration / (count + 1)) * (i + 1));
+      }
+
+      for (const t of times) {
+        await seekTo(video, t);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Full quality for API
+        frames.push(canvas.toDataURL('image/jpeg', 0.75).split(',')[1]);
+        // Tiny thumbnail for UI (much smaller)
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 120; thumbCanvas.height = 90;
+        thumbCanvas.getContext('2d').drawImage(canvas, 0, 0, 120, 90);
+        thumbs.push(thumbCanvas.toDataURL('image/jpeg', 0.5));
+      }
+
+      URL.revokeObjectURL(url);
+      resolve({ frames, thumbs });
+    };
+    video.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not load video')); };
+  });
+}
+
+function seekTo(video, time) {
+  return new Promise(resolve => {
+    video.currentTime = time;
+    video.onseeked = () => { video.onseeked = null; resolve(); };
+  });
+}
+
+// ── CLAUDE API ─────────────────────────────────────────────────────────────────
+async function analyzeWithClaude(frames, thumbs, style, description) {
+  // Select up to 5 frames spaced across the video for API efficiency
+  const selected = [];
+  const step = Math.max(1, Math.floor(frames.length / 5));
+  for (let i = 0; i < frames.length && selected.length < 5; i += step) {
+    selected.push({ data: frames[i], thumb: thumbs[i] });
+  }
+
+  const content = [];
+  content.push({
+    type: 'text',
+    text: `You are an expert ballet coach with 20+ years experience analyzing technique. You are looking at ${selected.length} frames extracted from a ballet performance video.
+
+Ballet style specified: ${style}
+${description ? 'Dancer context: ' + description : ''}
+
+Analyze the dancer's technique across these frames. Look carefully at:
+- Body alignment and posture (spine, shoulders, hips)
+- Arm positions and port de bras (line from shoulder through fingertips)
+- Leg positions, turnout, and extension
+- Foot placement and articulation
+- Head and épaulement
+- Overall balance and weight distribution
+
+Identify the primary movement/pose being performed.
+
+Return ONLY valid JSON matching this exact schema (no markdown, no extra text):
+{
+  "overallScore": <number 40-95>,
+  "alignment": <number 40-98>,
+  "extension": <number 40-98>,
+  "turnout": <number 40-98>,
+  "balance": <number 40-98>,
+  "pose": "<identified movement e.g. arabesque, tendu, plié, pirouette, attitude, grand battement, port de bras>",
+  "positives": [
+    {"text": "<specific observation using ballet terminology>", "timeStart": "<e.g. frame 2>", "timeEnd": "<e.g. frame 4>"}
+  ],
+  "improvements": [
+    {"text": "<specific actionable correction>", "timeStart": "<e.g. frame 1>", "timeEnd": "<e.g. frame 3>"}
+  ],
+  "coachNote": "<2-3 sentence overall coaching summary that is encouraging and specific>"
+}
+Include 2-3 positives and 2-3 improvements. Be specific about what you actually see in the frames.`
+  });
+
+  // Add frames as images
+  selected.forEach((f, i) => {
+    content.push({ type: 'text', text: `Frame ${i + 1} of ${selected.length}:` });
+    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.data } });
+  });
+
+  // Auto-detect environment:
+  // 1. GitHub Codespaces  — same host, /api/claude
+  // 2. Local proxy        — localhost:3001/api/claude
+  // 3. Direct (fallback)  — Anthropic API with browser header + manual key
+  function getEndpoint() {
+    const h = location.hostname;
+    // Codespaces: *.app.github.dev — proxy runs on same host, same port
+    if (h.endsWith('.app.github.dev') || h.endsWith('.github.dev')) {
+      return { url: '/api/claude', proxied: true };
+    }
+    // Local proxy
+    if (h === 'localhost' || h === '127.0.0.1') {
+      return { url: `${location.protocol}//${h}:3001/api/claude`, proxied: true };
+    }
+    // Direct fallback
+    return { url: 'https://api.anthropic.com/v1/messages', proxied: false };
+  }
+  const { url: endpoint, proxied: isProxied } = getEndpoint();
+
+  const reqHeaders = { 'Content-Type': 'application/json' };
+  if (!isProxied) {
+    reqHeaders['anthropic-version'] = '2023-06-01';
+    reqHeaders['anthropic-dangerous-direct-browser-access'] = 'true';
+    if (window._ANTHROPIC_KEY) reqHeaders['x-api-key'] = window._ANTHROPIC_KEY;
+  }
+
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: reqHeaders,
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1400,
+      messages: [{ role: 'user', content }]
+    })
+  });
+
+  if (!resp.ok) {
+    const errBody = await resp.json().catch(() => ({}));
+    const msg = errBody.error?.message || resp.statusText || 'Unknown error';
+    if (resp.status === 401) throw new Error('API key invalid or missing. Start the proxy server (see README).');
+    if (resp.status === 400) throw new Error('Request error: ' + msg);
+    throw new Error('API error ' + resp.status + ': ' + msg);
+  }
+
+  const data = await resp.json();
+  const rawText = data.content.find(b => b.type === 'text')?.text || '';
+  try {
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    const jsonStr = clean.startsWith('{') ? clean : clean.slice(clean.indexOf('{'));
+    return { report: JSON.parse(jsonStr), usedThumbs: selected.map(f => f.thumb) };
+  } catch(e) {
+    throw new Error('Could not parse AI response. Raw: ' + rawText.slice(0, 300));
+  }
+}
+
+// ── RENDER HELPERS ─────────────────────────────────────────────────────────────
+function navBar(act) {
+  const items = [
+    {id:'home', label:'Home', svg:`<svg viewBox="0 0 24 24"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>`},
+    {id:'analysis', label:'Analyse', svg:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`},
+    {id:'profile', label:'Profile', svg:`<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`},
+  ];
+  return `<nav class="nav">${items.map(n=>`<div class="ni${n.id===act?' act':''}" onclick="go('${n.id}')">${n.svg}<span>${n.label}</span><div class="ni-dot"></div></div>`).join('')}</nav>`;
+}
+
+function scoreRing(score) {
+  const circ = 251, dash = circ * (1 - score/100);
+  return `<div class="ring-wrap"><div class="ring">
+    <svg viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="8"/>
+      <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="${circ}" stroke-dashoffset="${dash}" transform="rotate(-90 50 50)"/>
+    </svg>
+    <div class="ring-center"><div class="ring-num">${score}</div><div class="ring-lbl">Overall</div></div>
+  </div></div>`;
+}
+
+function dimBars(r) {
+  return [
+    {n:'Alignment', v:r.alignment, c:'var(--navy)'},
+    {n:'Extension', v:r.extension, c:'var(--navy)'},
+    {n:'Turnout',   v:r.turnout,   c:r.turnout<70?'var(--blush-dark)':'var(--navy)'},
+    {n:'Balance',   v:r.balance,   c:'var(--navy)'},
+  ].map(d=>`<div class="dim-row">
+    <div class="dim-name">${d.n}</div>
+    <div class="dim-bg"><div class="dim-fill" style="width:${d.v}%;background:${d.c}"></div></div>
+    <div class="dim-val">${d.v}</div>
+  </div>`).join('');
+}
+
+// ── PAGES ──────────────────────────────────────────────────────────────────────
+
+function renderHome() {
+  const last = S.history[S.history.length-1];
+  return `
+  <div class="notch"></div>
+  <div class="status"><span>9:41</span><span>⚡ 87%</span></div>
+  <div class="scroll">
+    <div class="hdr">
+      <div><div style="font-size:10px;color:var(--ink-soft)">Good morning,</div><div class="htitle">Sofia</div></div>
+      <div class="avatar" style="width:36px;height:36px;font-size:16px">S</div>
+    </div>
+
+    ${last ? `<div class="hero">
+      <div class="hero-orb1"></div><div class="hero-orb2"></div>
+      <div style="font-size:9px;color:var(--blush);letter-spacing:.09em;text-transform:uppercase;margin-bottom:3px;position:relative">Latest Analysis</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--white);font-style:italic;margin-bottom:3px;position:relative;line-height:1.25">${last.pose} — Today</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.5;margin-bottom:10px;position:relative">Score: ${last.score}. Tap to view your full report.</div>
+      <div style="display:inline-flex;align-items:center;gap:5px;background:var(--blush);color:var(--navy);border-radius:10px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;position:relative" onclick="viewLast()">View Report →</div>
+    </div>` : `<div class="hero">
+      <div class="hero-orb1"></div><div class="hero-orb2"></div>
+      <div style="font-size:9px;color:var(--blush);letter-spacing:.09em;text-transform:uppercase;margin-bottom:3px;position:relative">Welcome to Élevé AI</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--white);font-style:italic;margin-bottom:3px;position:relative;line-height:1.25">Your AI ballet coach<br>is ready</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.5;margin-bottom:10px;position:relative">Upload a real video. Get AI technique analysis from AI Vision.</div>
+      <div style="display:inline-flex;align-items:center;gap:5px;background:var(--blush);color:var(--navy);border-radius:10px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;position:relative" onclick="go('analysis')">Try Real Analysis →</div>
+    </div>`}
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">${S.history.length}</div><div class="stat-lbl">Analyses</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--blush-dark)">${S.history.length > 0 ? Math.max(...S.history.map(h=>h.score||0)) : '—'}</div><div class="stat-lbl">Best Score</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--green)">AI</div><div class="stat-lbl">Vision</div></div>
+    </div>
+
+    <span class="sec-lbl">Features</span>
+    <div class="feat-card" onclick="go('analysis')">
+      <div class="feat-icon" style="background:var(--blush-light)">${poseIcon('arab')}</div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--ink);margin-bottom:2px">Solo Analysis <span style="font-size:9px;color:var(--green);font-weight:400;margin-left:4px">● Real video</span></div>
+        <div style="font-size:10px;color:var(--ink-soft);line-height:1.5">Upload your actual video. AI Vision analyzes your real technique from extracted frames.</div>
+      </div>
+    </div>
+
+    <div class="banner" style="background:var(--gold-light);border:.5px solid var(--gold)">
+      <div style="font-size:10px;font-weight:500;color:#6B4A10;margin-bottom:3px">How real video analysis works</div>
+      <div style="font-size:10px;color:#6B4A10;opacity:.9;line-height:1.7">
+        1. Select your video (MP4 or MOV, any length)<br>
+        2. Browser extracts 10 frames across your video<br>
+        3. AI Vision analyzes your actual body position<br>
+        4. Scores + coaching feedback based on real frames
+      </div>
+    </div>
+    <div style="height:10px"></div>
+  </div>
+  ${navBar('home')}`;
+}
+
+function renderUpload() {
+  const hasFile = !!S.file;
+  const styles = ['Classical','Contemporary','Neoclassical'];
+  return `
+  <div class="notch"></div>
+  <div class="status"><span>9:41</span><span>⚡ 87%</span></div>
+  <div class="scroll">
+    <div class="hdr"><div class="back" onclick="go('home')">←</div><div class="htitle">Solo Analysis</div><div style="width:30px"></div></div>
+    <div style="padding:0 14px 12px;font-size:11px;color:var(--ink-soft);line-height:1.65">Upload a real video. The browser extracts frames and AI Vision analyzes your actual technique.</div>
+
+    <div class="banner" style="background:var(--navy-pale);border:.5px solid var(--navy-muted);margin-bottom:6px">
+      <div style="font-size:10px;font-weight:500;color:var(--navy);margin-bottom:4px">Connection mode</div>
+      <div id="conn-status" style="font-size:10px;color:var(--ink-mid);line-height:1.6">Checking…</div>
+    </div>
+
+    ${S.error ? `<div class="banner" style="background:#FEE;border:.5px solid var(--blush-dark);margin-bottom:6px">
+      <div style="font-size:10px;font-weight:500;color:var(--blush-deep)">Error</div>
+      <div style="font-size:10px;color:var(--blush-deep)">${S.error}</div>
+      <div style="font-size:10px;color:var(--blush-deep);margin-top:4px">See setup instructions in the README or run the proxy server.</div>
+    </div>` : ''}
+
+    <div class="drop-zone ${hasFile?'has-file':''}" id="drop-zone" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
+      <input type="file" accept="video/mp4,video/quicktime,video/*" onchange="onFileInput(event)" id="file-input"/>
+      ${hasFile ? `
+        <div style="font-size:24px;margin-bottom:6px">✓</div>
+        <div style="font-size:12px;font-weight:500;color:var(--green)">${S.fileName}</div>
+        <div style="font-size:10px;color:var(--green);margin-top:2px">Ready to analyse — tap Continue</div>
+      ` : `
+        <div style="display:flex;justify-content:center;margin-bottom:8px">${poseIcon('arab')}</div>
+        <div style="font-size:12px;font-weight:500;color:var(--navy)">Tap or drag to upload video</div>
+        <div style="font-size:10px;color:var(--ink-soft);margin-top:2px">MP4 or MOV · any length · no size limit</div>
+      `}
+    </div>
+
+    ${S.videoURL ? `<div class="video-preview-wrap">
+      <video src="${S.videoURL}" controls playsinline style="width:100%;max-height:200px;object-fit:contain;display:block;background:#000;border-radius:14px"></video>
+      <div class="video-overlay-badge">Preview</div>
+    </div>` : ''}
+
+    <div class="banner" style="background:var(--blush-light);border:.5px solid var(--blush)">
+      <div style="font-size:10px;font-weight:500;color:var(--blush-deep);margin-bottom:3px">For best results</div>
+      <div style="font-size:10px;color:var(--blush-deep);opacity:.85;line-height:1.6">
+        · Full body visible from head to feet<br>
+        · Good lighting, minimal background clutter<br>
+        · Form-fitting attire (leotard, tights) for clearer lines
+      </div>
+    </div>
+
+    <span class="sec-lbl" style="margin-top:4px">Ballet style</span>
+    <div class="style-pills">${styles.map(s=>`<div class="style-pill${S.style===s?' sel':''}" onclick="setStyle('${s}')">${s}</div>`).join('')}</div>
+
+    <span class="sec-lbl" style="margin-top:10px">Add context for better analysis</span>
+    <textarea rows="3" placeholder="e.g. Working on arabesque, 3 years of training, focusing on hip alignment and arm line..." oninput="S.description=this.value">${S.description}</textarea>
+
+    <button class="btn btn-primary" onclick="startAnalysis()" ${hasFile?'':'disabled'}>Continue →</button>
+    <div style="height:10px"></div>
+  </div>
+  ${navBar('analysis')}`;
+}
+
+function renderProcessing() {
+  const p = S.progress;
+  const steps = [
+    {label:'Extracting frames from video', done: p>=25},
+    {label:'Preparing frames for AI', done: p>=50},
+    {label:'AI Vision analyzing technique', done: p>=80},
+    {label:'Generating coaching report', done: p>=100},
+  ];
+  return `
+  <div class="notch"></div>
+  <div class="status"><span>9:43</span><span>⚡ 86%</span></div>
+  <div class="scroll">
+    <div class="hdr"><div style="width:30px"></div><div class="htitle">Analysing…</div><div style="width:30px"></div></div>
+    <div style="text-align:center;padding:16px 18px 10px">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--blush-light);margin:0 auto 4px;display:flex;align-items:center;justify-content:center">${poseIcon('arab',38)}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--navy);font-style:italic;margin-bottom:4px;margin-top:8px">AI Vision is watching</div>
+      <div style="font-size:10px;color:var(--ink-soft);line-height:1.6">${S.progressLabel || 'Processing your video…'}</div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-label"><span>Progress</span><span style="color:var(--navy);font-weight:500">${p}%</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:${p}%"></div></div>
+    </div>
+
+    ${S.frameThumbs.length > 0 ? `
+    <span class="sec-lbl">Extracted frames</span>
+    <div class="frames-grid">${S.frameThumbs.map((t,i)=>`
+      <div class="frame-thumb ${p>=50&&i<3?'done':p>=25?'analyzing':''}">
+        <img src="${t}" alt="Frame ${i+1}"/>
+      </div>`).join('')}
+    </div>` : ''}
+
+    ${steps.map((s,i)=>`<div class="step-row" style="${i===3?'border-bottom:none':''}${!s.done&&p<[0,25,50,80][i]?';opacity:.35':''}">
+      <div class="step-dot" style="background:${s.done?'var(--green)':p>=[0,25,50,80][i]?'var(--blush-dark)':'var(--border)'}"></div>
+      <div style="font-size:11px;color:var(--ink-mid)">${s.label}</div>
+      <div style="margin-left:auto;font-size:11px;color:${s.done?'var(--green)':'var(--gold)'}">${s.done?'✓':p>=[0,25,50,80][i]?'···':''}</div>
+    </div>`).join('')}
+  </div>
+  ${navBar('analysis')}`;
+}
+
+function renderReport() {
+  const r = S.report;
+  if (!r) return renderUpload();
+  const poseName = r.pose || 'Performance';
+  const pLabel = poseName.charAt(0).toUpperCase() + poseName.slice(1);
+  return `
+  <div class="notch"></div>
+  <div class="status"><span>9:46</span><span>⚡ 84%</span></div>
+  <div class="scroll">
+    <div class="hdr"><div class="back" onclick="resetAnalysis()">←</div><div class="htitle">Your Report</div><div style="font-size:16px;color:var(--ink-soft);cursor:pointer" title="Export PDF">↑</div></div>
+    <div style="padding:0 14px 10px;display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+      <span class="badge" style="background:var(--blush-light);color:var(--blush-deep)">${pLabel}</span>
+      <span class="badge" style="background:var(--navy-pale);color:var(--navy-mid)">${S.style}</span>
+      <span class="badge" style="background:var(--green-light);color:var(--green)">● Real video</span>
+      <span style="font-size:10px;color:var(--ink-soft)">Today</span>
+    </div>
+
+    ${scoreRing(r.overallScore)}
+
+    <span class="sec-lbl">By Dimension</span>
+    ${dimBars(r)}
+
+    ${S.frameThumbs.length > 0 ? `
+    <span class="sec-lbl" style="margin-top:8px">Analysed frames</span>
+    <div class="inline-frames">${S.frameThumbs.map((t,i)=>`<div class="inline-frame"><img src="${t}" alt="Frame ${i+1}"/></div>`).join('')}</div>
+    ` : ''}
+
+    ${r.coachNote ? `<div class="banner" style="background:var(--navy-pale);border:.5px solid var(--navy-muted)">
+      <div style="font-size:10px;font-weight:500;color:var(--navy);margin-bottom:3px">Coach's note</div>
+      <div style="font-size:10px;color:var(--ink-mid);line-height:1.65">${r.coachNote}</div>
+    </div>` : ''}
+
+    <span class="sec-lbl">Strengths</span>
+    ${(r.positives||[]).map(p=>`<div class="chip">
+      <div class="chip-dot" style="background:var(--green)"></div>
+      <div><div class="chip-text">${p.text}</div><div class="chip-time">${p.timeStart} — ${p.timeEnd}</div></div>
+    </div>`).join('')}
+
+    <span class="sec-lbl" style="margin-top:6px">Areas to work on</span>
+    ${(r.improvements||[]).map(p=>`<div class="chip">
+      <div class="chip-dot" style="background:var(--blush-dark)"></div>
+      <div><div class="chip-text">${p.text}</div><div class="chip-time">${p.timeStart} — ${p.timeEnd}</div></div>
+    </div>`).join('')}
+
+    <button class="btn btn-outline" onclick="resetAnalysis()">New Analysis</button>
+    <div style="height:10px"></div>
+  </div>
+  ${navBar('analysis')}`;
+}
+
+function renderProfile() {
+  return `
+  <div class="notch"></div>
+  <div class="scroll">
+    <div style="background:var(--navy);padding:20px 16px 18px;text-align:center">
+      <div style="display:flex;justify-content:center;margin-bottom:7px"><div class="avatar">S</div></div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:19px;color:var(--white);margin-bottom:2px">Sofia Marchetti</div>
+      <div style="font-size:10px;color:var(--navy-muted);margin-bottom:12px">Intermediate · Member since Jan 2026</div>
+      <div style="display:flex;justify-content:center;gap:20px">
+        <div style="text-align:center"><div style="font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--white);font-weight:600">${S.history.length}</div><div style="font-size:9px;color:var(--navy-muted)">Analyses</div></div>
+        <div style="width:.5px;background:rgba(255,255,255,.15)"></div>
+        <div style="text-align:center"><div style="font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--blush);font-weight:600">${S.history.length>0?Math.max(...S.history.map(h=>h.score||0)):'—'}</div><div style="font-size:9px;color:var(--navy-muted)">Best Score</div></div>
+        <div style="width:.5px;background:rgba(255,255,255,.15)"></div>
+        <div style="text-align:center"><div style="font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--white);font-weight:600">Real</div><div style="font-size:9px;color:var(--navy-muted)">AI Vision</div></div>
+      </div>
+    </div>
+    <span class="sec-lbl" style="margin-top:12px">Analysis History</span>
+    ${S.history.length === 0 ? `<div style="padding:24px 14px;text-align:center;font-size:11px;color:var(--ink-soft)">No analyses yet. Upload your first video to get started!</div>` :
+      [...S.history].reverse().map(h=>`<div class="hist-item">
+        <div class="hist-thumb" style="background:var(--blush-light)">
+          ${h.thumb ? `<img src="${h.thumb}" alt=""/>` : poseIcon('arab',22)}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:500;color:var(--ink)">${h.pose}</div>
+          <div style="font-size:10px;color:var(--ink-soft);margin-top:1px">Today · Score: ${h.score} · ${h.style}</div>
+        </div>
+        <span class="badge" style="background:var(--green-light);color:var(--green)">● Real</span>
+      </div>`).join('')
+    }
+    <div style="height:70px"></div>
+  </div>
+  ${navBar('profile')}`;
+}
+
+// ── MAIN RENDER ────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  if (S.page === 'home') { app.innerHTML = renderHome(); return; }
+  if (S.page === 'profile') { app.innerHTML = renderProfile(); return; }
+  // analysis
+  if (S.view === 'upload') app.innerHTML = renderUpload();
+  else if (S.view === 'processing') app.innerHTML = renderProcessing();
+  else if (S.view === 'report') app.innerHTML = renderReport();
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────────────────────
+window.go = function(p) { S.page = p; if (p === 'analysis' && S.view === 'report') {} render(); };
+window.setStyle = function(s) { S.style = s; render(); };
+window.viewLast = function() { S.page = 'analysis'; S.view = 'report'; render(); };
+window.resetAnalysis = function() {
+  S.view = 'upload'; S.file = null; S.fileName = ''; S.videoURL = '';
+  S.report = null; S.frames = []; S.frameThumbs = []; S.description = ''; S.error = null;
+  render();
+};
+
+window.onFileInput = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  S.error = null;
+  S.file = file;
+  S.fileName = file.name;
+  if (S.videoURL) URL.revokeObjectURL(S.videoURL);
+  S.videoURL = URL.createObjectURL(file);
+  render();
+};
+
+window.onDrag = function(e, over) {
+  e.preventDefault();
+  document.getElementById('drop-zone')?.classList.toggle('dragover', over);
+};
+
+window.onDrop = function(e) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('video/')) { S.error = 'Please drop a video file (MP4 or MOV).'; render(); return; }
+  S.error = null; S.file = file; S.fileName = file.name;
+  if (S.videoURL) URL.revokeObjectURL(S.videoURL);
+  S.videoURL = URL.createObjectURL(file);
+  render();
+};
+
+window.startAnalysis = async function() {
+  if (!S.file) return;
+  S.view = 'processing'; S.progress = 5; S.progressLabel = 'Loading video…'; S.error = null; render();
+
+  try {
+    // Step 1: Extract frames
+    S.progressLabel = 'Extracting frames from video…'; S.progress = 15; render();
+    const { frames, thumbs } = await extractFrames(S.file, 10);
+    S.frames = frames; S.frameThumbs = thumbs;
+    S.progress = 30; S.progressLabel = `Extracted ${frames.length} frames`; render();
+
+    await sleep(300);
+
+    // Step 2: Prepare
+    S.progress = 50; S.progressLabel = 'Preparing frames for AI Vision…'; render();
+    await sleep(400);
+
+    // Step 3: Call Claude
+    S.progress = 60; S.progressLabel = 'AI Vision is analyzing your technique…'; render();
+    const { report, usedThumbs } = await analyzeWithClaude(frames, thumbs, S.style, S.description);
+    S.progress = 90; S.progressLabel = 'Generating coaching report…'; render();
+    await sleep(500);
+
+    S.progress = 100; S.progressLabel = 'Done!'; render();
+    await sleep(300);
+
+    S.report = report;
+    S.view = 'report';
+    S.history.push({
+      pose: report.pose?.charAt(0).toUpperCase() + report.pose?.slice(1) || 'Performance',
+      score: report.overallScore,
+      style: S.style,
+      thumb: usedThumbs[0] || null,
+    });
+    render();
+  } catch(err) {
+    S.view = 'upload'; S.error = err.message; render();
+  }
+};
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Check connection mode on load ─────────────────────────────────────────────
+async function checkConnection() {
+  const el = document.getElementById('conn-status');
+  if (!el) return;
+  const h = location.hostname;
+  const isCodespaces = h.endsWith('.app.github.dev') || h.endsWith('.github.dev');
+  const healthUrl = (isCodespaces || h === 'localhost' || h === '127.0.0.1')
+    ? '/health'
+    : null;
+  if (healthUrl) {
+    try {
+      const r = await fetch(healthUrl, { signal: AbortSignal.timeout(2000) });
+      if (r.ok) {
+        const d = await r.json().catch(() => ({}));
+        const where = isCodespaces ? 'GitHub Codespaces' : 'localhost';
+        el.innerHTML = `<span style="color:var(--green);font-weight:500">● Connected via ${where}</span> — proxy running, ready to analyse real videos`;
+        return;
+      }
+    } catch(e) {}
+  }
+  el.innerHTML = '<span style="color:var(--blush-dark);font-weight:500">● Not connected</span> — proxy not detected. See README to start it. Or paste your API key here:' +
+    '<br><input type="password" placeholder="sk-ant-..." style="margin-top:6px;width:100%;padding:5px 8px;border-radius:8px;border:0.5px solid var(--border);font-size:10px;font-family:monospace" oninput="window._ANTHROPIC_KEY=this.value"/>';
+}
+window.addEventListener('DOMContentLoaded', checkConnection);
+// Also re-check whenever the analysis tab becomes visible
+const _origRender = render;
+window.render = function() { _origRender(); setTimeout(checkConnection, 50); };
+
+render();
+</script>
+</body>
+</html>
