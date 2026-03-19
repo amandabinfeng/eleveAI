@@ -11,6 +11,9 @@ AI-powered ballet technique analysis. Upload a real video, AI Vision analyzes yo
 
 ### 2. Open in Codespaces
 Click **Code** → **Codespaces** → **Create codespace on main**
+RUN:
+npm install
+node server.js
 
 Codespaces auto-runs `npm install` and `npm start`, then pops up:
 > "Your app on port 3001 is available" → **Open in Browser**
