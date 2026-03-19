@@ -6,7 +6,7 @@ AI-powered ballet technique analysis. Upload a real video, AI Vision analyzes yo
 
 ### 1. Add your API key as a secret
 - GitHub → Settings → Codespaces → Secrets → New secret
-- Name: `ANTHROPIC_API_KEY`, value: your key from [console.anthropic.com](https://console.anthropic.com)
+- Name: `OPENAI_API_KEY`, value: your key from (https://platform.openai.com/api-keys)
 - Grant access to this repository
 
 ### 2. Open in Codespaces
