@@ -343,7 +343,7 @@ input.field:focus{border-color:var(--navy)}
             <div class="feat-arrow">→</div>
             <div class="feat-icon" style="background:var(--blush-light)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blush-deep)" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div class="feat-title">Solo Analysis</div>
-            <div class="feat-desc">Upload one video. AI Vision extracts frames and generates technique scores across alignment, extension, turnout and balance.</div>
+            <div class="feat-desc">Upload one video. AI scores Technique and Artistry across 13 YAGP criteria — alignment, turnout, épaulement, dynamics, stage presence and more.</div>
           </div>
           <div class="feat-card" onclick="showView('benchmark',null)">
             <div class="feat-arrow">→</div>
@@ -387,6 +387,14 @@ input.field:focus{border-color:var(--navy)}
               <div class="panel">
                 <div class="panel-head"><div class="panel-title">Analysis settings</div></div>
                 <div class="panel-body" style="display:flex;flex-direction:column;gap:14px">
+                  <div>
+                    <label class="field-label">Age group</label>
+                    <div class="style-row" id="age-row">
+                      <div class="style-chip" onclick="setAge('Pre-competitive',this)">Pre-competitive (8–11)</div>
+                      <div class="style-chip sel" onclick="setAge('Junior',this)">Junior (12–15)</div>
+                      <div class="style-chip" onclick="setAge('Senior',this)">Senior (16+)</div>
+                    </div>
+                  </div>
                   <div>
                     <label class="field-label">Ballet style</label>
                     <div class="style-row" id="style-row">
@@ -467,14 +475,38 @@ input.field:focus{border-color:var(--navy)}
           <div class="feature-layout">
             <div>
               <div class="panel" style="margin-bottom:16px">
-                <div class="panel-head"><div class="panel-title">Technique Score</div></div>
-                <div class="score-ring-wrap"><div class="score-ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="8"/><circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" stroke-width="8" stroke-linecap="round" stroke-dasharray="251" id="score-arc" stroke-dashoffset="251" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s var(--ease)"/></svg><div class="score-center"><div class="score-num" id="score-num">—</div><div class="score-lbl">Overall</div></div></div></div>
-                <div class="dim-list" id="dim-list"></div>
+                <div class="panel-head"><div class="panel-title">YAGP Score</div><div id="sparkle-badge" style="display:none;font-size:18px;letter-spacing:2px" title="Outstanding performance">✦✦✦</div></div>
+                <div class="score-ring-wrap">
+                  <div class="score-ring">
+                    <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="8"/><circle cx="50" cy="50" r="40" fill="none" id="score-arc-track" stroke="var(--navy)" stroke-width="8" stroke-linecap="round" stroke-dasharray="251" id="score-arc" stroke-dashoffset="251" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s var(--ease),stroke .5s"/></svg>
+                    <div class="score-center"><div class="score-num" id="score-num">—</div><div class="score-lbl">Average</div></div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 16px">
+                  <div style="background:var(--navy-pale);border-radius:12px;padding:12px 14px;text-align:center">
+                    <div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Technique</div>
+                    <div style="font-family:var(--font-serif);font-size:28px;font-weight:600;color:var(--navy)" id="technique-score">—</div>
+                  </div>
+                  <div style="background:var(--blush-light);border-radius:12px;padding:12px 14px;text-align:center">
+                    <div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Artistry</div>
+                    <div style="font-family:var(--font-serif);font-size:28px;font-weight:600;color:var(--blush-deep)" id="artistry-score">—</div>
+                  </div>
+                </div>
+                <div style="padding:0 20px 4px;font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;font-weight:500">Technique dimensions</div>
+                <div class="dim-list" id="dim-list-technique" style="margin-bottom:8px"></div>
+                <div style="padding:0 20px 4px;font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;font-weight:500">Artistry dimensions</div>
+                <div class="dim-list" id="dim-list-artistry" style="margin-bottom:4px"></div>
               </div>
               <div class="panel" style="margin-bottom:16px"><div class="panel-head"><div class="panel-title">Coach's Note</div></div><div class="panel-body"><div id="coach-note" style="font-size:12px;color:var(--ink-mid);line-height:1.75;font-style:italic"></div></div></div>
-              <div class="panel" id="keypoints-panel" style="margin-bottom:16px;display:none">
-                <div class="panel-head"><div class="panel-title">Measured Joint Angles</div><span class="badge" style="background:var(--green-light);color:var(--green)">MediaPipe</span></div>
-                <div class="panel-body"><div style="font-size:10px;color:var(--ink-soft);margin-bottom:10px">Objective measurements from 33-keypoint pose estimation across all extracted frames</div><div id="keypoints-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div></div>
+              <div id="keypoints-panel" style="margin-bottom:16px;display:none">
+                <button onclick="toggleKeypoints()" style="width:100%;background:none;border:.5px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--ink-soft);font-family:var(--font-sans)">
+                  <span>View joint measurements (coaches)</span>
+                  <span id="keypoints-toggle-icon" style="font-size:14px;transition:transform .2s">▸</span>
+                </button>
+                <div id="keypoints-detail" style="display:none;margin-top:8px;background:var(--white);border-radius:12px;border:.5px solid var(--border);padding:16px">
+                  <div style="font-size:10px;color:var(--ink-soft);margin-bottom:12px">Quality indicators derived from 33-keypoint pose estimation across all extracted frames</div>
+                  <div id="keypoints-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+                </div>
               </div>
             </div>
             <div>
@@ -726,6 +758,7 @@ const MODEL = 'gpt-4o';
 // ── State ──────────────────────────────────────────────────────────────────
 const S = {
   style: 'Classical',
+  ageGroup: 'Junior',
   analysisFile: null, analysisVideoURL: '',
   bench1File: null, bench2File: null,
   prog1File: null, prog2File: null,
@@ -935,23 +968,55 @@ async function extractFrames(file) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── Prompts ────────────────────────────────────────────────────────────────
-function buildAnalysisContent(frames, thumbs, style, desc, apiFrameCount, keypointText) {
+function buildAnalysisContent(frames, thumbs, style, desc, apiFrameCount, keypointText, ageGroup) {
   const n = apiFrameCount || 8;
   const sel = selectFrames(frames, thumbs, n);
   const hasKP = !!(keypointText && keypointText.length > 10);
-  const content = [{ type:'text', text:
-`You are an expert ballet coach with 20+ years experience. Analyze ${sel.length} frames from a ballet performance video.
-Ballet style: ${style}. ${desc ? 'Dancer context: ' + desc : ''}
-${hasKP ? keypointText : ''}
-${hasKP ? '\nUse the measured joint angles as primary basis for scores. Reference specific angles in observations.' : 'Look carefully at: body alignment, arm positions/port de bras, leg positions/turnout, foot articulation, head/épaulement, balance.'}
 
-Return ONLY valid JSON (no markdown):
+  const ageFocus = {
+    'Pre-competitive': `AGE GROUP: Pre-competitive (8–11). FOCUS: Healthy foundations. Prioritise natural posture, relaxed arm placement, basic turnout (not forced), and staying on the music. Be generous — this group is building habits, not competing for perfection. Flag any forced turnout or unhealthy compensations as priority concerns.`,
+    'Junior': `AGE GROUP: Junior (12–15). FOCUS: Technical scrutiny begins. Expect controlled pirouettes, proper jump preparation and landing, safe pointework execution, emerging épaulement, and phrasing awareness beyond beat-counting. Variation difficulty relative to ability matters.`,
+    'Senior': `AGE GROUP: Senior (16+). FOCUS: Near-professional standard. Technical floor is high — falls, sickled feet, or shaky balances are meaningful deductions. Expect genuine artistic interpretation through the steps, not just steps performed. Classical repertoire should show stylistic authenticity (correct épaulement conventions for the era/choreographer).`,
+  }[ageGroup || 'Junior'];
+
+  const content = [{ type:'text', text:
+`You are a senior ballet adjudicator and coach with 20+ years experience, trained in YAGP evaluation standards.
+Analyze ${sel.length} frames from a ballet performance video.
+Ballet style: ${style}. ${desc ? 'Dancer context: ' + desc : ''}
+${ageFocus}
+${hasKP ? keypointText : ''}
+${hasKP ? '\nUse the measured joint angles as primary basis for technique scores. Reference specific angles in observations.' : 'Look carefully at: alignment, turnout, step execution, pointework, arm flow, épaulement, dynamics, stage presence.'}
+
+Score using the YAGP two-pillar system. Each pillar is 0–100. Overall = average of both.
+
+TECHNIQUE dimensions (each 0–100):
+- alignment: Plumb line, neutral pelvis, vertical spine
+- turnout: En dehors from the hip (not forced at foot/knee)
+- execution: Quality of jumps, turns, extensions, transitions
+- pointework: Foot articulation, demi-pointe/pointe safety and control
+- musicality: Timing, phrasing, rhythmic accuracy
+- control: Strength, stability, balance, clean landings
+
+ARTISTRY dimensions (each 0–100):
+- line: Overall body line, length, shape in space
+- epaulement: Relationship between arms, head, and torso
+- portDeBras: Arm flow and quality through transitions
+- style: Fidelity to choreographic style and period conventions
+- dynamics: Contrast between fast/slow, light/heavy, tension/release
+- presence: Stage projection, professional focus, eye focus
+- expression: Authentic emotional connection and commitment to the music
+
+Return ONLY valid JSON (no markdown, no extra text):
 {
-  "overallScore": <40-95>, "alignment": <40-98>, "extension": <40-98>, "turnout": <40-98>, "balance": <40-98>,
-  "pose": "<primary movement>",
-  "positives": [{"text":"<observation>","timeStart":"<e.g. frame 2>","timeEnd":"<e.g. frame 4>"}],
-  "improvements": [{"text":"<actionable correction>","timeStart":"<e.g. frame 1>","timeEnd":"<e.g. frame 3>"}],
-  "coachNote": "<2-3 sentences, encouraging and specific>"
+  "techniqueScore": <0-100>,
+  "artistryScore": <0-100>,
+  "overallScore": <average of the two, rounded>,
+  "technique": { "alignment":<0-100>, "turnout":<0-100>, "execution":<0-100>, "pointework":<0-100>, "musicality":<0-100>, "control":<0-100> },
+  "artistry": { "line":<0-100>, "epaulement":<0-100>, "portDeBras":<0-100>, "style":<0-100>, "dynamics":<0-100>, "presence":<0-100>, "expression":<0-100> },
+  "pose": "<primary movement or variation name>",
+  "positives": [{"text":"<specific observation>","timeStart":"<e.g. frame 2>","timeEnd":"<e.g. frame 4>"}],
+  "improvements": [{"text":"<actionable correction using ballet terminology>","timeStart":"<e.g. frame 1>","timeEnd":"<e.g. frame 3>"}],
+  "coachNote": "<2-3 sentences, encouraging and specific, referencing what you actually saw>"
 }
 2-3 positives, 2-3 improvements.` }];
   sel.forEach((f,i) => { content.push({type:'text',text:`Frame ${i+1}:`}); content.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+f.data,detail:'low'}}); });
@@ -1105,6 +1170,7 @@ function handleFile(file, slot) {
   }
 }
 function setStyle(s, el) { S.style = s; document.querySelectorAll('#style-row .style-chip').forEach(c => c.classList.remove('sel')); el.classList.add('sel'); }
+function setAge(a, el) { S.ageGroup = a; document.querySelectorAll('#age-row .style-chip').forEach(c => c.classList.remove('sel')); el.classList.add('sel'); }
 
 // ── Step/progress helpers ──────────────────────────────────────────────────
 function setStep(n, state) {
@@ -1172,7 +1238,7 @@ async function startAnalysis() {
     setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',55,'Computing scores…');
     await sleep(200);
     const keypointText = keypointSummary ? keypointsToText(keypointSummary, canvases.length) : '';
-    const { content, thumbs: usedThumbs } = buildAnalysisContent(frames, thumbs, S.style, document.getElementById('analysis-desc').value, apiFrameCount, keypointText);
+    const { content, thumbs: usedThumbs } = buildAnalysisContent(frames, thumbs, S.style, document.getElementById('analysis-desc').value, apiFrameCount, keypointText, S.ageGroup);
     setStep(2,'done');
 
     setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',65,'AI generating coaching feedback…');
@@ -1185,7 +1251,8 @@ async function startAnalysis() {
     setProc('proc-bar','proc-pct','proc-label',100,'Done!'); await sleep(300);
 
     S.lastReport = report; S.lastReportThumbs = usedThumbs;
-    S.history.push({ id:Date.now(), type:'solo', pose:cap(report.pose||'Performance'), score:report.overallScore, style:S.style, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report });
+    const overallScore = report.overallScore || Math.round(((report.techniqueScore||0)+(report.artistryScore||0))/2);
+    S.history.push({ id:Date.now(), type:'solo', pose:cap(report.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report });
     saveHistory();
     renderAnalysisReport(report, usedThumbs);
     document.getElementById('analysis-processing').style.display = 'none';
@@ -1197,18 +1264,86 @@ async function startAnalysis() {
   }
 }
 
+function angleToQuality(key, avg) {
+  const q = (thresholds, labels) => {
+    for (let i = 0; i < thresholds.length; i++) if (avg >= thresholds[i]) return labels[i];
+    return labels[labels.length - 1];
+  };
+  const color = (label) => {
+    if (['Excellent','Fully Extended','Level','Upright','Elegant'].includes(label)) return 'var(--green)';
+    if (['Strong','Nearly Straight','Slight Tilt','Slight Lean','Good'].includes(label)) return 'var(--gold-dark)';
+    return 'var(--blush-dark)';
+  };
+  const map = {
+    leftElbow:   { label: 'Left Elbow (Port de Bras)',   fn: () => q([170,145,120,90],['Fully Extended','Elegant','Moderate Bend','Bent','Deeply Bent']) },
+    rightElbow:  { label: 'Right Elbow (Port de Bras)',  fn: () => q([170,145,120,90],['Fully Extended','Elegant','Moderate Bend','Bent','Deeply Bent']) },
+    leftHip:     { label: 'Left Hip Extension',          fn: () => q([165,145,125,100],['Excellent','Strong','Good','Developing','Limited']) },
+    rightHip:    { label: 'Right Hip Extension',         fn: () => q([165,145,125,100],['Excellent','Strong','Good','Developing','Limited']) },
+    leftKnee:    { label: 'Left Leg Line',               fn: () => q([165,145,120],['Fully Extended','Nearly Straight','Bent','Deeply Bent']) },
+    rightKnee:   { label: 'Right Leg Line',              fn: () => q([165,145,120],['Fully Extended','Nearly Straight','Bent','Deeply Bent']) },
+    shoulderTilt:{ label: 'Shoulder Alignment',          fn: () => q([170,155,135],['Level','Slight Tilt','Moderate Tilt','Significant Tilt']) },
+    hipTilt:     { label: 'Hip Alignment',               fn: () => q([165,145,120],['Level','Slight Tilt','Moderate Tilt','Significant Tilt']) },
+    torsoAngle:  { label: 'Torso Posture',               fn: () => q([165,145,120],['Upright','Slight Lean','Moderate Lean','Significant Lean']) },
+  };
+  const entry = map[key];
+  if (!entry) return null;
+  const ql = entry.fn();
+  return { label: entry.label, quality: ql, color: color(ql) };
+}
+
+function toggleKeypoints() {
+  const detail = document.getElementById('keypoints-detail');
+  const icon = document.getElementById('keypoints-toggle-icon');
+  const open = detail.style.display === 'block';
+  detail.style.display = open ? 'none' : 'block';
+  icon.style.transform = open ? '' : 'rotate(90deg)';
+}
+
 function renderAnalysisReport(r, thumbs) {
   document.getElementById('report-badges').innerHTML =
     `<span class="badge" style="background:var(--blush-light);color:var(--blush-deep)">${cap(r.pose||'Performance')}</span>
      <span class="badge" style="background:var(--navy-pale);color:var(--navy-mid)">${S.style}</span>
-     <span class="badge" style="background:var(--green-light);color:var(--green)">● Real video</span>`;
-  const score = r.overallScore||0;
-  document.getElementById('score-num').textContent = score;
-  setTimeout(() => { document.getElementById('score-arc').style.strokeDashoffset = 251*(1-score/100); }, 100);
-  document.getElementById('dim-list').innerHTML = [
-    {n:'Alignment',v:r.alignment,c:'var(--navy)'},{n:'Extension',v:r.extension,c:'var(--navy)'},
-    {n:'Turnout',v:r.turnout,c:r.turnout<70?'var(--blush-dark)':'var(--navy)'},{n:'Balance',v:r.balance,c:'var(--navy)'},
-  ].map(d=>`<div class="dim-row"><div class="dim-name">${d.n}</div><div class="dim-track"><div class="dim-fill" style="width:${d.v}%;background:${d.c}"></div></div><div class="dim-val">${d.v}</div></div>`).join('');
+     <span class="badge" style="background:var(--green-light);color:var(--green)">● ${S.ageGroup}</span>`;
+
+  const overall = r.overallScore || Math.round(((r.techniqueScore||0)+(r.artistryScore||0))/2) || 0;
+  const tech = r.techniqueScore || 0;
+  const art = r.artistryScore || 0;
+
+  document.getElementById('score-num').textContent = overall;
+  document.getElementById('technique-score').textContent = tech;
+  document.getElementById('artistry-score').textContent = art;
+
+  const arc = document.getElementById('score-arc');
+  const is96 = overall >= 96;
+  setTimeout(() => {
+    arc.style.strokeDashoffset = 251*(1-overall/100);
+    arc.style.stroke = is96 ? 'var(--gold)' : 'var(--navy)';
+  }, 100);
+  const sparkle = document.getElementById('sparkle-badge');
+  sparkle.style.display = is96 ? 'block' : 'none';
+  if (is96) sparkle.style.color = 'var(--gold)';
+
+  const dimRow = (n, v, c) => `<div class="dim-row"><div class="dim-name">${n}</div><div class="dim-track"><div class="dim-fill" style="width:${v}%;background:${c}"></div></div><div class="dim-val">${v}</div></div>`;
+  const tc = r.technique || {};
+  const ac = r.artistry || {};
+  document.getElementById('dim-list-technique').innerHTML = [
+    ['Alignment',    tc.alignment,  'var(--navy)'],
+    ['Turnout',      tc.turnout,    tc.turnout < 70 ? 'var(--blush-dark)' : 'var(--navy)'],
+    ['Execution',    tc.execution,  'var(--navy)'],
+    ['Pointework',   tc.pointework, 'var(--navy)'],
+    ['Musicality',   tc.musicality, 'var(--navy)'],
+    ['Control',      tc.control,    'var(--navy)'],
+  ].map(([n,v,c]) => dimRow(n, v||0, c)).join('');
+  document.getElementById('dim-list-artistry').innerHTML = [
+    ['Line',         ac.line,       'var(--blush-dark)'],
+    ['Épaulement',   ac.epaulement, 'var(--blush-dark)'],
+    ['Port de Bras', ac.portDeBras, 'var(--blush-dark)'],
+    ['Style',        ac.style,      'var(--blush-dark)'],
+    ['Dynamics',     ac.dynamics,   'var(--blush-dark)'],
+    ['Presence',     ac.presence,   'var(--blush-dark)'],
+    ['Expression',   ac.expression, 'var(--blush-dark)'],
+  ].map(([n,v,c]) => dimRow(n, v||0, c)).join('');
+
   document.getElementById('coach-note').textContent = r.coachNote||'';
   if (thumbs?.length) {
     document.getElementById('report-frames-grid').innerHTML = thumbs.map((t,i)=>`<div class="frame-item done"><img src="${t}" alt=""/><div class="frame-num">${i+1}</div></div>`).join('');
@@ -1216,11 +1351,21 @@ function renderAnalysisReport(r, thumbs) {
   }
   document.getElementById('positives-list').innerHTML = (r.positives||[]).map(p=>`<div class="chip"><div class="chip-dot" style="background:var(--green)"></div><div class="chip-body"><div class="chip-text">${p.text}</div><div class="chip-meta">${p.timeStart} — ${p.timeEnd}</div></div></div>`).join('');
   document.getElementById('improvements-list').innerHTML = (r.improvements||[]).map(p=>`<div class="chip"><div class="chip-dot" style="background:var(--blush-dark)"></div><div class="chip-body"><div class="chip-text">${p.text}</div><div class="chip-meta">${p.timeStart} — ${p.timeEnd}</div></div></div>`).join('');
+
   if (r.keypointSummary) {
-    const labels={leftElbow:'Left Elbow',rightElbow:'Right Elbow',leftHip:'Left Hip Ext.',rightHip:'Right Hip Ext.',leftKnee:'Left Knee',rightKnee:'Right Knee',shoulderTilt:'Shoulder Tilt',hipTilt:'Hip Tilt',torsoAngle:'Torso Lean'};
-    document.getElementById('keypoints-grid').innerHTML = Object.entries(r.keypointSummary).map(([k,v])=>`<div style="background:var(--navy-pale);border-radius:10px;padding:10px 12px"><div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${labels[k]||k}</div><div style="font-size:16px;font-family:var(--font-serif);font-weight:600;color:var(--navy)">${v.avg}°</div><div style="font-size:9px;color:var(--ink-soft);margin-top:2px">${v.min}°–${v.max}°</div></div>`).join('');
+    document.getElementById('keypoints-grid').innerHTML = Object.entries(r.keypointSummary).map(([k,v]) => {
+      const q = angleToQuality(k, v.avg);
+      if (!q) return '';
+      return `<div style="background:var(--navy-pale);border-radius:10px;padding:10px 12px">
+        <div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${q.label}</div>
+        <div style="font-size:13px;font-weight:500;color:${q.color}">${q.quality}</div>
+        <div style="font-size:9px;color:var(--ink-soft);margin-top:2px">${v.avg}° avg (${v.min}°–${v.max}°)</div>
+      </div>`;
+    }).join('');
     document.getElementById('keypoints-panel').style.display = 'block';
-  } else { document.getElementById('keypoints-panel').style.display = 'none'; }
+  } else {
+    document.getElementById('keypoints-panel').style.display = 'none';
+  }
   updateDashboard();
 }
 
