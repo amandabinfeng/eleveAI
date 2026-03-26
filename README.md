@@ -30,7 +30,7 @@ The sidebar shows **● Codespaces** when connected.
 git clone https://github.com/YOUR_USERNAME/eleve-ai
 cd eleve-ai
 npm install
-ANTHROPIC_API_KEY=sk-ant-... node server.js
+OPENAI_API_KEY=sk-... node server.js
 # Open: http://localhost:3001
 ```
 
@@ -41,10 +41,16 @@ ANTHROPIC_API_KEY=sk-ant-... node server.js
 - **Benchmark Comparison** — Compare your video against a professional reference
 - **Progress Tracking** — Compare two of your own videos to see what's improved
 
+## Model
+Defaults to `gpt-4o`. Override via environment variable:
+```bash
+OPENAI_MODEL=gpt-4.5 node server.js
+```
+
 ## How it works
 1. Browser extracts 10 frames evenly from your video (Canvas API)
 2. 5 frames sent as images to AI Vision via the proxy server
-3. Claude analyzes actual body position in each frame
+3. GPT-4o analyzes actual body position in each frame
 4. Scores + specific coaching feedback returned
 
 ~$0.02–0.05 per analysis. No video is stored.

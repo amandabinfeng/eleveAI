@@ -15,6 +15,7 @@ try {
 const app     = express();
 const PORT    = 3001;
 const API_KEY = process.env.OPENAI_API_KEY;
+const MODEL   = process.env.OPENAI_MODEL || 'gpt-4o';
 
 if (!API_KEY) {
   console.error('\n❌  OPENAI_API_KEY not set.\n');
@@ -36,7 +37,7 @@ app.get('/health', (req, res) => {
   const proto = req.headers['x-forwarded-proto'] || 'http';
   res.json({
     ok: true,
-    model: 'gpt-4o-mini',
+    model: MODEL,
     appUrl: `${proto}://${host}/index.html`,
     isCodespaces: !!process.env.CODESPACE_NAME,
   });

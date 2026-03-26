@@ -720,6 +720,9 @@ input.field:focus{border-color:var(--navy)}
 </div>
 
 <script>
+// ── Model ──────────────────────────────────────────────────────────────────
+const MODEL = 'gpt-4o';
+
 // ── State ──────────────────────────────────────────────────────────────────
 const S = {
   style: 'Classical',
@@ -1173,7 +1176,7 @@ async function startAnalysis() {
     setStep(2,'done');
 
     setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',65,'AI generating coaching feedback…');
-    const data = await claudeAPI({ model:'gpt-4o-mini', max_tokens:1600, messages:[{role:'user',content}] });
+    const data = await claudeAPI({ model:MODEL, max_tokens:1600, messages:[{role:'user',content}] });
     const report = parseJSON(data.content.find(b=>b.type==='text')?.text||'');
     if (keypointSummary) report.keypointSummary = keypointSummary;
     setStep(3,'done'); setProc('proc-bar','proc-pct','proc-label',88,'Building report…');
@@ -1283,7 +1286,7 @@ async function startBenchmark() {
       document.getElementById('bench-desc').value, r1.apiFrameCount,
       doSync ? `Music beat sync applied: dancer frames start at ${offset1.toFixed(1)}s, benchmark frames start at ${offset2.toFixed(1)}s — both anchored to their first musical beat for like-for-like movement comparison.` : ''
     );
-    const data = await claudeAPI({ model:'gpt-4o-mini', max_tokens:4000, messages:[{role:'user',content}] });
+    const data = await claudeAPI({ model:MODEL, max_tokens:4000, messages:[{role:'user',content}] });
     const result = parseJSON(data.content.find(b=>b.type==='text')?.text||'');
     result._thumbs1 = usedThumbs1;
     result._thumbs2 = usedThumbs2;
@@ -1459,7 +1462,7 @@ async function startProgress() {
       document.getElementById('prog-desc').value, r1.apiFrameCount,
       doProgSync ? `Music beat sync applied: earlier video frames start at ${pOffset1.toFixed(1)}s, recent video frames start at ${pOffset2.toFixed(1)}s — both anchored to their first musical beat for like-for-like movement comparison.` : ''
     );
-    const data = await claudeAPI({ model:'gpt-4o-mini', max_tokens:4000, messages:[{role:'user',content}] });
+    const data = await claudeAPI({ model:MODEL, max_tokens:4000, messages:[{role:'user',content}] });
     const result = parseJSON(data.content.find(b=>b.type==='text')?.text||'');
     result._thumbs1 = usedThumbs1;
     result._thumbs2 = usedThumbs2;
