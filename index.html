@@ -950,20 +950,26 @@ async function extractFramesIsolated(file) {
           probeData.push({ time: t, motion, variance }); prevPixels = pixels.slice();
         }
 
-        // Pass 2: find performance window using adaptive variance threshold.
-        // Use the 35th percentile of all probe variances as the threshold — this adapts
-        // to any stage colour, since empty-stage frames cluster at the low end.
-        const sortedVar = [...probeData].map(p => p.variance).sort((a, b) => a - b);
-        const VARIANCE_THRESHOLD = sortedVar[Math.floor(sortedVar.length * 0.35)];
-        const activeProbes = probeData.filter(p => p.variance > VARIANCE_THRESHOLD);
-        // Also enforce a minimum trim: skip the first and last 2% of the video (entrance/bow walk-off)
+        // Pass 2: find performance window using motion-based boundary detection.
+        // An empty stage has near-zero motion between frames; any dancer presence creates motion.
+        // Use 5% of peak motion as threshold — adaptive to each video's motion range.
+        const peakMotion = Math.max(...probeData.map(p => p.motion));
+        const motionThreshold = peakMotion * 0.05;
+
+        // Find first probe where motion picks up (dancer enters)
+        let perfStartIdx = 0;
+        for (let i = 1; i < probeData.length; i++) {
+          if (probeData[i].motion > motionThreshold) { perfStartIdx = Math.max(0, i - 1); break; }
+        }
+        // Find last probe where motion is still active (dancer exits)
+        let perfEndIdx = probeData.length - 1;
+        for (let i = probeData.length - 2; i >= 0; i--) {
+          if (probeData[i].motion > motionThreshold) { perfEndIdx = Math.min(probeData.length - 1, i + 1); break; }
+        }
+
         const minTrim = dur * 0.02;
-        const perfStart = activeProbes.length > 0
-          ? Math.max(minTrim, activeProbes[0].time - 0.2)
-          : minTrim;
-        const perfEnd = activeProbes.length > 0
-          ? Math.min(dur - minTrim, activeProbes[activeProbes.length - 1].time + 0.2)
-          : dur - minTrim;
+        const perfStart = Math.max(minTrim, probeData[perfStartIdx].time);
+        const perfEnd = Math.min(dur - minTrim, probeData[perfEndIdx].time);
 
         // Pass 3: segment only within the performance window, pick highest-motion frame per segment
         const segWidth = (perfEnd - perfStart) / API_FRAMES;
@@ -1024,6 +1030,8 @@ ${hasKP ? keypointText : ''}
 ${hasKP ? '\nUse the measured joint angles as primary basis for technique scores. Reference specific angles in observations.' : 'Look carefully at: alignment, turnout, step execution, pointework, arm flow, épaulement, dynamics, stage presence.'}
 
 Score using the YAGP two-pillar system. Each pillar is 0–100. Overall = average of both.
+
+SCORING CALIBRATION (critical): YAGP adjudicators score generously for competition-ready dancers. A well-prepared dancer with clean technique, good control, and musical sensitivity should score 88–94. Reserve scores below 80 for significant errors, poor preparation, or safety concerns. Most competition-level performers score in the 85–95 range. Do not anchor on "perfection" — anchor on "competition standard". A technically solid, expressive performance with minor imperfections scores 90+.
 
 TECHNIQUE dimensions (each 0–100):
 - alignment: Plumb line, neutral pelvis, vertical spine
