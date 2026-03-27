@@ -928,28 +928,36 @@ async function extractFramesIsolated(file) {
         const W = 640, H = Math.round(640 * (video.videoHeight / video.videoWidth)) || 480;
         canvas.width = W; canvas.height = H; small.width = 80; small.height = Math.round(80*H/W);
 
-        // Pass 1: motion probe across full timeline
+        // Pass 1: motion + brightness probe across full timeline
         const probeCount = Math.min(80, Math.ceil(dur / PROBE_GAP)), probeData = []; let prevPixels = null;
         for (let i = 0; i <= probeCount; i++) {
           const t = (dur / probeCount) * i;
           await seekTo(t);
           sctx.drawImage(video, 0, 0, small.width, small.height);
           const pixels = sctx.getImageData(0, 0, small.width, small.height).data;
-          let motion = 0;
-          if (prevPixels) { for (let p = 0; p < pixels.length; p += 4) motion += Math.abs(pixels[p]-prevPixels[p])+Math.abs(pixels[p+1]-prevPixels[p+1])+Math.abs(pixels[p+2]-prevPixels[p+2]); motion /= (pixels.length/4); }
-          probeData.push({ time: t, motion }); prevPixels = pixels.slice();
+          let motion = 0, brightness = 0;
+          for (let p = 0; p < pixels.length; p += 4) {
+            brightness += pixels[p]*0.299 + pixels[p+1]*0.587 + pixels[p+2]*0.114;
+            if (prevPixels) motion += Math.abs(pixels[p]-prevPixels[p])+Math.abs(pixels[p+1]-prevPixels[p+1])+Math.abs(pixels[p+2]-prevPixels[p+2]);
+          }
+          brightness /= (pixels.length/4);
+          if (prevPixels) motion /= (pixels.length/4);
+          probeData.push({ time: t, motion, brightness }); prevPixels = pixels.slice();
         }
 
-        // Pass 2: temporal segmentation — divide full timeline into API_FRAMES segments,
-        // pick the highest-motion probe point within each segment (fallback: segment midpoint).
+        // Pass 2: temporal segmentation — divide full timeline into API_FRAMES segments.
+        // Skip dark frames (brightness < 20) — likely before dancer enters or after they exit.
+        // Pick highest-motion frame within each segment; fall back to brightest if all dark.
         const segWidth = dur / API_FRAMES;
         const selected = [];
         for (let seg = 0; seg < API_FRAMES; seg++) {
           const segStart = seg * segWidth, segEnd = (seg + 1) * segWidth;
           const segProbes = probeData.filter(p => p.time >= segStart && p.time < segEnd);
-          if (segProbes.length > 0) {
-            segProbes.sort((a, b) => b.motion - a.motion);
-            selected.push(segProbes[0].time);
+          const litProbes = segProbes.filter(p => p.brightness > 20);
+          const pool = litProbes.length > 0 ? litProbes : segProbes;
+          if (pool.length > 0) {
+            pool.sort((a, b) => b.motion - a.motion);
+            selected.push(pool[0].time);
           } else {
             selected.push(Math.min(segStart + segWidth / 2, dur - 0.1));
           }
@@ -1254,8 +1262,10 @@ async function startAnalysis() {
     setStep(2,'done');
 
     setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',65,'AI generating coaching feedback…');
-    const data = await claudeAPI({ model:MODEL, max_tokens:1600, messages:[{role:'user',content}] });
-    const report = parseJSON(data.content.find(b=>b.type==='text')?.text||'');
+    const data = await claudeAPI({ model:MODEL, max_tokens:2500, messages:[{role:'user',content}] });
+    const rawText = data.content.find(b=>b.type==='text')?.text || '';
+    if (!rawText.includes('{')) throw new Error(`AI returned an unexpected response: "${rawText.slice(0,150)}"`);
+    const report = parseJSON(rawText);
     if (keypointSummary) report.keypointSummary = keypointSummary;
     setStep(3,'done'); setProc('proc-bar','proc-pct','proc-label',88,'Building report…');
 
