@@ -258,10 +258,18 @@ input.field:focus{border-color:var(--navy)}
   .topbar { display:none !important; }
   .content { display:block !important; height:auto !important; overflow:visible !important; padding:16px !important; }
   .view { display:none !important; }
-  #view-analysis { display:block !important; }
+  /* Solo Analysis print */
+  body:not([data-print="progress"]) #view-analysis { display:block !important; }
   #analysis-upload, #analysis-processing, #fallback-notice, #frames-in-report, #report-video { display:none !important; }
   #analysis-report { display:block !important; }
   #analysis-report button { display:none !important; }
+  /* Progress Tracking print */
+  body[data-print="progress"] #view-progress { display:block !important; }
+  body[data-print="progress"] #prog-upload, body[data-print="progress"] #prog-processing { display:none !important; }
+  body[data-print="progress"] #prog-results { display:block !important; }
+  body[data-print="progress"] #prog-results button { display:none !important; }
+  body[data-print="progress"] #prog-video-panel { display:none !important; }
+  /* Shared */
   .feature-layout { display:block !important; }
   .feature-layout > div { width:100% !important; margin-bottom:16px; }
   .panel { box-shadow:none !important; border:1px solid #ddd !important; break-inside:avoid; margin-bottom:16px; }
@@ -607,7 +615,22 @@ input.field:focus{border-color:var(--navy)}
           </div>
         </div>
         <div id="prog-results" style="display:none">
-          <div style="display:flex;gap:10px;margin-bottom:20px"><button class="btn btn-ghost" onclick="resetProgress()">← New Comparison</button></div>
+          <div style="display:flex;gap:10px;margin-bottom:20px">
+            <button class="btn btn-ghost" onclick="resetProgress()">← New Comparison</button>
+            <button class="btn btn-ghost" style="margin-left:auto" onclick="exportProgressPDF()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export PDF</button>
+          </div>
+          <div id="prog-video-panel" style="display:none;margin-bottom:20px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="panel">
+                <div class="panel-head"><div class="panel-title" id="prog-vid1-title">Earlier Performance</div></div>
+                <div class="panel-body" style="padding:0"><video id="prog-video-1" controls playsinline style="width:100%;display:block;max-height:200px;background:#000;border-radius:0 0 8px 8px"></video></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><div class="panel-title" id="prog-vid2-title">Recent Performance</div></div>
+                <div class="panel-body" style="padding:0"><video id="prog-video-2" controls playsinline style="width:100%;display:block;max-height:200px;background:#000;border-radius:0 0 8px 8px"></video></div>
+              </div>
+            </div>
+          </div>
           <div id="prog-verdict-banner" class="verdict-banner" style="margin-bottom:20px"><div class="verdict-icon" id="prog-verdict-icon">—</div><div><div class="verdict-label" id="prog-verdict-label">—</div><div class="verdict-rationale" id="prog-verdict-rationale"></div></div></div>
           <div id="prog-score-strip" style="margin-bottom:20px"></div>
           <div id="prog-delta-grid" style="margin-bottom:20px"></div>
@@ -695,7 +718,7 @@ const S = {
   engine: 'gpt4o',
   analysisFile: null, analysisVideoURL: '',
   bench1File: null, bench2File: null,
-  prog1File: null, prog2File: null,
+  prog1File: null, prog2File: null, prog1VideoURL: '', prog2VideoURL: '',
   history: [],
   lastReport: null, lastBenchResult: null, lastProgResult: null,
   mediapipeReady: false, pose: null,
@@ -1053,11 +1076,15 @@ function handleFile(file, slot) {
     document.getElementById('analysis-submit-btn').disabled = false;
   } else if (slot === 'prog1') {
     S.prog1File = file;
+    if (S.prog1VideoURL) URL.revokeObjectURL(S.prog1VideoURL);
+    S.prog1VideoURL = URL.createObjectURL(file);
     document.getElementById('prog-slot-1').classList.add('has-file');
     document.getElementById('prog1-label').textContent = '✓ ' + file.name.slice(0,24);
     if (S.prog1File && S.prog2File) document.getElementById('prog-submit-btn').disabled = false;
   } else if (slot === 'prog2') {
     S.prog2File = file;
+    if (S.prog2VideoURL) URL.revokeObjectURL(S.prog2VideoURL);
+    S.prog2VideoURL = URL.createObjectURL(file);
     document.getElementById('prog-slot-2').classList.add('has-file');
     document.getElementById('prog2-label').textContent = '✓ ' + file.name.slice(0,24);
     if (S.prog1File && S.prog2File) document.getElementById('prog-submit-btn').disabled = false;
@@ -1412,6 +1439,16 @@ function exportPDF() {
   document.title = orig;
 }
 
+function exportProgressPDF() {
+  const variation = document.getElementById('prog-variation')?.value?.trim() || 'Progress Report';
+  const orig = document.title;
+  document.title = variation + ' — Progress Report';
+  document.body.setAttribute('data-print', 'progress');
+  window.print();
+  document.body.removeAttribute('data-print');
+  document.title = orig;
+}
+
 function resetAnalysis() {
   S.analysisFile = null;
   const reportVid = document.getElementById('report-video');
@@ -1543,6 +1580,20 @@ function renderProgressResults(r) {
   const earlier = r.earlier || {};
   const recent  = r.recent  || {};
 
+  // Context labels (read early — used for video titles and score strip)
+  const ctx1 = r._context1 || document.getElementById('prog-context-1')?.value?.trim() || 'Earlier';
+  const ctx2 = r._context2 || document.getElementById('prog-context-2')?.value?.trim() || 'Recent';
+
+  // Video players — only shown if videos are loaded (current session only)
+  const vid1 = document.getElementById('prog-video-1');
+  const vid2 = document.getElementById('prog-video-2');
+  const vidPanel = document.getElementById('prog-video-panel');
+  if (S.prog1VideoURL && vid1) vid1.src = S.prog1VideoURL;
+  if (S.prog2VideoURL && vid2) vid2.src = S.prog2VideoURL;
+  if (vidPanel) vidPanel.style.display = (S.prog1VideoURL || S.prog2VideoURL) ? 'block' : 'none';
+  const t1el = document.getElementById('prog-vid1-title'); if (t1el) t1el.textContent = ctx1;
+  const t2el = document.getElementById('prog-vid2-title'); if (t2el) t2el.textContent = ctx2;
+
   // Verdict banner
   const cfg = {
     'improved':   { bg:'var(--green-light)',  color:'var(--green)',      icon:'↑', border:'var(--green)',      label:'Improved' },
@@ -1563,8 +1614,6 @@ function renderProgressResults(r) {
   const overallE = Math.round(((earlier.techniqueScore||0) + (earlier.artistryScore||0)) / 2);
   const overallR = Math.round(((recent.techniqueScore||0)  + (recent.artistryScore||0))  / 2);
   const scoreDelta = overallR - overallE;
-  const ctx1 = r._context1 || document.getElementById('prog-context-1')?.value?.trim() || 'Earlier';
-  const ctx2 = r._context2 || document.getElementById('prog-context-2')?.value?.trim() || 'Recent';
   document.getElementById('prog-score-strip').innerHTML = `<div class="panel"><div class="panel-body" style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;text-align:center">
     <div>
       <div style="font-size:11px;font-weight:600;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">${ctx1}</div>
@@ -1643,6 +1692,11 @@ function renderProgressResults(r) {
 
 function resetProgress() {
   S.prog1File=null; S.prog2File=null;
+  const pv1=document.getElementById('prog-video-1'); const pv2=document.getElementById('prog-video-2');
+  if(pv1){pv1.pause();pv1.src='';} if(pv2){pv2.pause();pv2.src='';}
+  const pvp=document.getElementById('prog-video-panel'); if(pvp)pvp.style.display='none';
+  if(S.prog1VideoURL){URL.revokeObjectURL(S.prog1VideoURL);S.prog1VideoURL='';}
+  if(S.prog2VideoURL){URL.revokeObjectURL(S.prog2VideoURL);S.prog2VideoURL='';}
   ['prog-slot-1','prog-slot-2'].forEach(id=>document.getElementById(id)?.classList.remove('has-file'));
   document.getElementById('prog1-label').textContent='Click or drag to upload';
   document.getElementById('prog2-label').textContent='Click or drag to upload';
