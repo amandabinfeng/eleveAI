@@ -116,9 +116,32 @@ if (GoogleGenerativeAI) {
       send({ status: 'analyzing', message: 'Analysing performance with Gemini…' });
 
       const ageFocusMap = {
-        'Pre-competitive': 'DIVISION: Pre-competitive. COACHING FOCUS: Healthy foundations. Natural posture, relaxed arms, basic turnout, musicality. Be generous — habits are forming.',
-        'Junior':          'DIVISION: Junior. COACHING FOCUS: Technical scrutiny. Controlled pirouettes, proper jump prep and landing, safe pointework, emerging épaulement, phrasing awareness.',
-        'Senior':          'DIVISION: Senior. COACHING FOCUS: Near-professional standard. High technical floor. Genuine artistic interpretation through the steps, stylistic authenticity.',
+        'Pre-competitive': `DIVISION: Pre-competitive.
+CRITICAL — SCORE RELATIVE TO DIVISION: Do NOT apply Junior or Senior standards. Score against Pre-competitive peers only.
+The choreography is simpler by design — never deduct for variation difficulty.
+YAGP PRE-COMPETITIVE SCORING ANCHORS:
+- 90–96: Clean natural posture, turnout from hip (not forced), soft correct arms, stays on music, genuine stage presence. Small errors are normal and expected.
+- 85–89: Good foundations with some inconsistency in alignment or turnout.
+- Below 80: Significant technical safety concerns or inability to stay with the music.
+A dancer with natural technique, musicality, and age-appropriate expression SHOULD score 88–94. Do not be conservative.
+FOCUS: Natural plumb line, relaxed arms, hip-initiated turnout, musicality, warm stage presence.`,
+
+        'Junior': `DIVISION: Junior.
+CRITICAL — SCORE RELATIVE TO DIVISION: Score against Junior competition peers at YAGP, not Senior or professional standards.
+YAGP JUNIOR SCORING ANCHORS:
+- 90–96: Controlled pirouettes, proper jump preparation and landing, safe and functional pointework, emerging épaulement, clear phrasing awareness. Minor imperfections acceptable.
+- 85–89: Solid technique with inconsistency in turns or jumps.
+- Below 80: Repeated technical errors or safety concerns in pointework/landings.
+A well-prepared Junior with controlled technique and musical sensitivity SHOULD score 88–94.
+FOCUS: Pirouette control, jump prep/landing, safe pointework, emerging épaulement, phrasing.`,
+
+        'Senior': `DIVISION: Senior.
+CRITICAL — SCORE RELATIVE TO DIVISION: Near-professional standard. Score against Senior YAGP competitors.
+YAGP SENIOR SCORING ANCHORS:
+- 90–96: High technical floor — clean lines, genuine artistic interpretation through the steps, stylistic authenticity to the variation's period and character. Falls or repeated wobbles are meaningful deductions.
+- 85–89: Strong technique with inconsistent artistic depth or minor technical errors.
+- Below 80: Multiple technical failures or generic performance lacking stylistic identity.
+FOCUS: Stylistic authenticity, genuine artistry through the steps, technical consistency.`,
       };
 
       const prompt = `Act as a professional Ballet Adjudicator and Technical Coach with 20+ years of YAGP competition experience.
@@ -221,9 +244,32 @@ if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
       console.log('✓ Video ready — starting analysis');
 
       const ageFocusMap = {
-        'Pre-competitive': 'DIVISION: Pre-competitive. COACHING FOCUS: Healthy foundations. Natural posture, relaxed arms, basic turnout, musicality. Be generous — habits are forming.',
-        'Junior':          'DIVISION: Junior. COACHING FOCUS: Technical scrutiny. Controlled pirouettes, proper jump prep and landing, safe pointework, emerging épaulement, phrasing awareness.',
-        'Senior':          'DIVISION: Senior. COACHING FOCUS: Near-professional standard. High technical floor. Genuine artistic interpretation through the steps, stylistic authenticity.',
+        'Pre-competitive': `DIVISION: Pre-competitive.
+CRITICAL — SCORE RELATIVE TO DIVISION: Do NOT apply Junior or Senior standards. Score against Pre-competitive peers only.
+The choreography is simpler by design — never deduct for variation difficulty.
+YAGP PRE-COMPETITIVE SCORING ANCHORS:
+- 90–96: Clean natural posture, turnout from hip (not forced), soft correct arms, stays on music, genuine stage presence. Small errors are normal and expected.
+- 85–89: Good foundations with some inconsistency in alignment or turnout.
+- Below 80: Significant technical safety concerns or inability to stay with the music.
+A dancer with natural technique, musicality, and age-appropriate expression SHOULD score 88–94. Do not be conservative.
+FOCUS: Natural plumb line, relaxed arms, hip-initiated turnout, musicality, warm stage presence.`,
+
+        'Junior': `DIVISION: Junior.
+CRITICAL — SCORE RELATIVE TO DIVISION: Score against Junior competition peers at YAGP, not Senior or professional standards.
+YAGP JUNIOR SCORING ANCHORS:
+- 90–96: Controlled pirouettes, proper jump preparation and landing, safe and functional pointework, emerging épaulement, clear phrasing awareness. Minor imperfections acceptable.
+- 85–89: Solid technique with inconsistency in turns or jumps.
+- Below 80: Repeated technical errors or safety concerns in pointework/landings.
+A well-prepared Junior with controlled technique and musical sensitivity SHOULD score 88–94.
+FOCUS: Pirouette control, jump prep/landing, safe pointework, emerging épaulement, phrasing.`,
+
+        'Senior': `DIVISION: Senior.
+CRITICAL — SCORE RELATIVE TO DIVISION: Near-professional standard. Score against Senior YAGP competitors.
+YAGP SENIOR SCORING ANCHORS:
+- 90–96: High technical floor — clean lines, genuine artistic interpretation through the steps, stylistic authenticity to the variation's period and character. Falls or repeated wobbles are meaningful deductions.
+- 85–89: Strong technique with inconsistent artistic depth or minor technical errors.
+- Below 80: Multiple technical failures or generic performance lacking stylistic identity.
+FOCUS: Stylistic authenticity, genuine artistry through the steps, technical consistency.`,
       };
 
       const prompt = `Act as a professional Ballet Adjudicator and Technical Coach with 20+ years of YAGP competition experience.
