@@ -1263,15 +1263,19 @@ function showError(containerId, msg) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const is503 = msg && (msg.includes('503') || msg.includes('high demand') || msg.includes('Service Unavailable'));
-  if (is503) {
-    el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
-      <div class="banner-title">AI model temporarily unavailable</div>
-      <p>The AI is experiencing high demand right now. Your video is still loaded — try again in a moment.</p>
-      <button class="btn btn-primary" style="margin-top:10px" onclick="startAnalysis()">Try Again</button>
-    </div>`;
-  } else {
-    el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px"><div class="banner-title">Error</div><p>${msg}</p><p style="margin-top:6px;opacity:.7">Check the proxy server is running, or add your API key in Profile → Settings.</p></div>`;
-  }
+  const isNetwork = msg && (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch'));
+  const title = is503 ? 'AI model temporarily unavailable' : 'Error';
+  const detail = is503
+    ? 'The AI is experiencing high demand right now. Your video is still loaded — try again in a moment.'
+    : isNetwork
+    ? 'Cannot reach the server. Make sure <code>node server.js</code> is running in the Codespace terminal.'
+    : msg;
+  const showRetry = S.analysisFile != null;
+  el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
+    <div class="banner-title">${title}</div>
+    <p>${detail}</p>
+    ${showRetry ? `<button class="btn btn-primary" style="margin-top:10px" onclick="startAnalysis()">Try Again</button>` : ''}
+  </div>`;
 }
 
 // ── Solo Analysis ──────────────────────────────────────────────────────────
