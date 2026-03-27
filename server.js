@@ -84,12 +84,17 @@ app.post('/api/claude', async (req, res) => {
 if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
   const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 500 * 1024 * 1024 } });
 
-  app.post('/api/gemini-analyze', upload.single('video'), async (req, res) => {
-    const tmpPath = req.file?.path;
-    let uploadedFileName = null;
+  app.post('/api/gemini-analyze', async (req, res) => {
+    let tmpPath = null, uploadedFileName = null;
     try {
+      // Run multer inside try so errors return JSON instead of HTML
+      await new Promise((resolve, reject) => {
+        upload.single('video')(req, res, (err) => err ? reject(err) : resolve());
+      });
+
       if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
       if (!req.file)   return res.status(400).json({ error: 'No video file received' });
+      tmpPath = req.file.path;
 
       const { style = 'Classical', desc = '', ageGroup = 'Junior' } = req.body;
       const mimeType = req.file.mimetype || 'video/mp4';
@@ -97,7 +102,6 @@ if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
       const fileManager = new GoogleAIFileManager(GEMINI_KEY);
       const genAI       = new GoogleGenerativeAI(GEMINI_KEY);
 
-      // Upload to Gemini Files API
       console.log(`⬆  Uploading ${req.file.originalname} (${(req.file.size/1024/1024).toFixed(1)} MB) to Gemini…`);
       const uploadResult = await fileManager.uploadFile(tmpPath, { mimeType, displayName: req.file.originalname });
       uploadedFileName = uploadResult.file.name;
@@ -154,15 +158,13 @@ Return ONLY valid JSON (no markdown, no extra text):
       const text   = result.response.text();
       console.log(`✓ Gemini analysis done`);
 
-      // Parse JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
-      const report = JSON.parse(jsonMatch[0]);
-      res.json(report);
+      res.json(JSON.parse(jsonMatch[0]));
 
     } catch (err) {
       console.error('Gemini error:', err.message);
-      res.status(500).json({ error: err.message });
+      if (!res.headersSent) res.status(500).json({ error: err.message });
     } finally {
       if (tmpPath)          try { fs.unlinkSync(tmpPath); } catch(_) {}
       if (uploadedFileName) try { new GoogleAIFileManager(GEMINI_KEY).deleteFile(uploadedFileName); } catch(_) {}
