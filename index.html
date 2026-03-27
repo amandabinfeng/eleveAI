@@ -247,6 +247,17 @@ input.field:focus{border-color:var(--navy)}
   .cmp-scores{grid-template-columns:1fr 1fr}
   .content{padding:16px}
 }
+@media print {
+  body { background:#fff; }
+  .sidebar, .topbar, #analysis-upload, #analysis-processing,
+  button, .report-action-bar { display:none !important; }
+  .content { padding:0 !important; }
+  #analysis-report { display:block !important; }
+  .panel { box-shadow:none !important; border:1px solid #e0e0e0; }
+  .progress-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .dim-bar-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .score-ring { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
 </style>
 </head>
 <body>
@@ -427,7 +438,6 @@ input.field:focus{border-color:var(--navy)}
                 </div>
               </div>
               <div class="banner banner-blush"><div class="banner-title">Best results</div><p>· Full body visible, head to feet<br>· Good lighting, plain background<br>· Leotard + tights for clear lines<br>· Add your level + focus area in context</p></div>
-              <div class="banner banner-gold"><div class="banner-title">Cost per analysis</div><p>~$0.02 per analysis.<br>Full video — AI sees every moment of the performance.</p></div>
             </div>
           </div>
         </div>
@@ -463,7 +473,7 @@ input.field:focus{border-color:var(--navy)}
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
             <button class="btn btn-ghost" onclick="resetAnalysis()">← New Analysis</button>
             <div id="report-badges" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-            <button class="btn btn-ghost" style="margin-left:auto" onclick="alert('PDF export — coming soon!')">
+            <button class="btn btn-ghost" style="margin-left:auto" onclick="exportPDF()">
               <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Export PDF
             </button>
@@ -1491,7 +1501,7 @@ function renderAnalysisReport(r, thumbs) {
     ['Alignment',    tc.alignment,  'var(--navy)'],
     ['Turnout',      tc.turnout,    tc.turnout < 70 ? 'var(--blush-dark)' : 'var(--navy)'],
     ['Execution',    tc.execution,  'var(--navy)'],
-    ['Pointework',   tc.pointework, 'var(--navy)'],
+    [S.ageGroup === 'Pre-competitive' ? 'Demi-pointe' : 'Pointework', tc.pointework, 'var(--navy)'],
     ['Musicality',   tc.musicality, 'var(--navy)'],
     ['Control',      tc.control,    'var(--navy)'],
   ].map(([n,v,c]) => dimRow(n, v||0, c)).join('');
@@ -1528,6 +1538,14 @@ function renderAnalysisReport(r, thumbs) {
     document.getElementById('keypoints-panel').style.display = 'none';
   }
   updateDashboard();
+}
+
+function exportPDF() {
+  const pose = document.getElementById('report-badges')?.textContent?.trim() || 'Ballet Analysis';
+  const orig = document.title;
+  document.title = pose;
+  window.print();
+  document.title = orig;
 }
 
 function resetAnalysis() {
