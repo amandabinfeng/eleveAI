@@ -1010,14 +1010,14 @@ function buildAnalysisContent(frames, thumbs, style, desc, apiFrameCount, keypoi
   const hasKP = !!(keypointText && keypointText.length > 10);
 
   const ageFocus = {
-    'Pre-competitive': `AGE GROUP: Pre-competitive (8–11). FOCUS: Healthy foundations. Prioritise natural posture, relaxed arm placement, basic turnout (not forced), and staying on the music. Be generous — this group is building habits, not competing for perfection. Flag any forced turnout or unhealthy compensations as priority concerns.`,
-    'Junior': `AGE GROUP: Junior (12–15). FOCUS: Technical scrutiny begins. Expect controlled pirouettes, proper jump preparation and landing, safe pointework execution, emerging épaulement, and phrasing awareness beyond beat-counting. Variation difficulty relative to ability matters.`,
-    'Senior': `AGE GROUP: Senior (16+). FOCUS: Near-professional standard. Technical floor is high — falls, sickled feet, or shaky balances are meaningful deductions. Expect genuine artistic interpretation through the steps, not just steps performed. Classical repertoire should show stylistic authenticity (correct épaulement conventions for the era/choreographer).`,
+    'Pre-competitive': `DIVISION: Pre-competitive. COACHING FOCUS: Healthy foundations. Prioritise natural posture, relaxed arm placement, basic turnout (not forced), and staying on the music. Be generous — this division is building habits, not competing for perfection. Flag any forced turnout or unhealthy compensations as priority concerns.`,
+    'Junior': `DIVISION: Junior. COACHING FOCUS: Technical scrutiny begins. Expect controlled pirouettes, proper jump preparation and landing, safe pointework execution, emerging épaulement, and phrasing awareness beyond beat-counting. Variation difficulty relative to ability matters.`,
+    'Senior': `DIVISION: Senior. COACHING FOCUS: Near-professional standard. Technical floor is high — falls, sickled feet, or shaky balances are meaningful deductions. Expect genuine artistic interpretation through the steps, not just steps performed. Classical repertoire should show stylistic authenticity (correct épaulement conventions for the era/choreographer).`,
   }[ageGroup || 'Junior'];
 
   const content = [{ type:'text', text:
 `You are a senior ballet adjudicator and coach with 20+ years experience, trained in YAGP evaluation standards.
-Analyze ${sel.length} frames from a ballet performance video. These frames are evenly distributed across the FULL performance timeline — from entrance to exit — so you are seeing the complete arc of the performance, not just highlights.
+Evaluate the movement mechanics and technique in ${sel.length} frames from a ballet performance. These frames are evenly distributed across the FULL performance timeline — from entrance to exit — so you are seeing the complete arc of the performance, not just highlights.
 Ballet style: ${style}. ${desc ? 'Dancer context: ' + desc : ''}
 ${ageFocus}
 ${hasKP ? keypointText : ''}
