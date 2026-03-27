@@ -419,7 +419,7 @@ input.field:focus{border-color:var(--navy)}
                 <div class="panel-head"><div class="panel-title">How it works</div></div>
                 <div class="panel-body" style="font-size:12px;color:var(--ink-soft);line-height:1.8">
                   <div style="display:flex;flex-direction:column;gap:10px">
-                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">1</div><div>Browser extracts <strong>up to 16 frames</strong>, prioritising high-motion moments</div></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">1</div><div>Browser extracts <strong>16 frames evenly across the full performance</strong> — entrance to exit, like a judge watching the whole variation</div></div>
                     <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">2</div><div><strong>MediaPipe Pose</strong> extracts 33 keypoints from every frame</div></div>
                     <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">3</div><div>AI analyzes your <strong>actual body position</strong> in each frame</div></div>
                     <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blush-dark);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">4</div><div>Scores + coaching feedback based on <strong>real frames</strong></div></div>
@@ -899,7 +899,9 @@ function keypointsToText(summary,frameCount) {
 // Creates its own video+canvas in memory — safe for sequential or repeated calls.
 // Includes per-seek timeout so it can never freeze indefinitely.
 async function extractFramesIsolated(file) {
-  const MAX_FRAMES=16, API_FRAMES=8, PROBE_GAP=0.5, MIN_SPACING=0.8, SEEK_TIMEOUT=5000;
+  // 16 segments across full timeline — one frame per segment, highest-motion moment within each.
+  // This mirrors how a judge watches the whole performance, not just the exciting bits.
+  const API_FRAMES=16, PROBE_GAP=0.5, SEEK_TIMEOUT=5000;
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     const canvas = document.createElement('canvas');
@@ -926,8 +928,8 @@ async function extractFramesIsolated(file) {
         const W = 640, H = Math.round(640 * (video.videoHeight / video.videoWidth)) || 480;
         canvas.width = W; canvas.height = H; small.width = 80; small.height = Math.round(80*H/W);
 
-        // Pass 1: motion probe
-        const probeCount = Math.min(60, Math.ceil(dur / PROBE_GAP)), probeData = []; let prevPixels = null;
+        // Pass 1: motion probe across full timeline
+        const probeCount = Math.min(80, Math.ceil(dur / PROBE_GAP)), probeData = []; let prevPixels = null;
         for (let i = 0; i <= probeCount; i++) {
           const t = (dur / probeCount) * i;
           await seekTo(t);
@@ -938,13 +940,23 @@ async function extractFramesIsolated(file) {
           probeData.push({ time: t, motion }); prevPixels = pixels.slice();
         }
 
-        // Pass 2: select frames
-        const anchors = [0.05,0.25,0.5,0.75,0.97].map(f => Math.min(dur*f, dur-0.1));
-        const sorted = [...probeData].sort((a,b) => b.motion-a.motion), selected = [...anchors];
-        for (const { time } of sorted) { if (selected.length >= MAX_FRAMES) break; if (!selected.some(t => Math.abs(t-time) < MIN_SPACING)) selected.push(time); }
-        selected.sort((a,b) => a-b);
+        // Pass 2: temporal segmentation — divide full timeline into API_FRAMES segments,
+        // pick the highest-motion probe point within each segment (fallback: segment midpoint).
+        const segWidth = dur / API_FRAMES;
+        const selected = [];
+        for (let seg = 0; seg < API_FRAMES; seg++) {
+          const segStart = seg * segWidth, segEnd = (seg + 1) * segWidth;
+          const segProbes = probeData.filter(p => p.time >= segStart && p.time < segEnd);
+          if (segProbes.length > 0) {
+            segProbes.sort((a, b) => b.motion - a.motion);
+            selected.push(segProbes[0].time);
+          } else {
+            selected.push(Math.min(segStart + segWidth / 2, dur - 0.1));
+          }
+        }
+        selected.sort((a, b) => a - b);
 
-        // Pass 3: full-res frames
+        // Pass 3: full-res frames at selected times
         const frames = [], thumbs = [], times = [], canvases = [];
         for (const t of selected) {
           await seekTo(t);
@@ -969,7 +981,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── Prompts ────────────────────────────────────────────────────────────────
 function buildAnalysisContent(frames, thumbs, style, desc, apiFrameCount, keypointText, ageGroup) {
-  const n = apiFrameCount || 8;
+  const n = apiFrameCount || 16;
   const sel = selectFrames(frames, thumbs, n);
   const hasKP = !!(keypointText && keypointText.length > 10);
 
@@ -981,7 +993,7 @@ function buildAnalysisContent(frames, thumbs, style, desc, apiFrameCount, keypoi
 
   const content = [{ type:'text', text:
 `You are a senior ballet adjudicator and coach with 20+ years experience, trained in YAGP evaluation standards.
-Analyze ${sel.length} frames from a ballet performance video.
+Analyze ${sel.length} frames from a ballet performance video. These frames are evenly distributed across the FULL performance timeline — from entrance to exit — so you are seeing the complete arc of the performance, not just highlights.
 Ballet style: ${style}. ${desc ? 'Dancer context: ' + desc : ''}
 ${ageFocus}
 ${hasKP ? keypointText : ''}
