@@ -64,7 +64,7 @@ html,body{height:100%;background:var(--surface);font-family:var(--font-sans);col
 .view{display:none;animation:fadeUp .25s var(--ease)}
 .view.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
 .stat-card{background:var(--white);border-radius:16px;padding:20px 22px;border:.5px solid var(--border);position:relative;overflow:hidden}
 .stat-card::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.08}
 .stat-card:nth-child(1)::after{background:var(--navy)}
@@ -80,8 +80,8 @@ html,body{height:100%;background:var(--surface);font-family:var(--font-sans);col
 .hero-title{font-family:var(--font-serif);font-size:26px;color:#fff;font-style:italic;line-height:1.25;margin-bottom:8px}
 .hero-desc{font-size:12px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:16px;max-width:360px}
 .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.feat-card{background:var(--white);border-radius:16px;padding:22px;border:.5px solid var(--border);cursor:pointer;transition:all .2s var(--ease);position:relative;overflow:hidden;}
+.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.feat-card{background:var(--white);border-radius:16px;padding:28px;border:.5px solid var(--border);cursor:pointer;transition:all .2s var(--ease);position:relative;overflow:hidden;min-height:160px;display:flex;flex-direction:column;justify-content:space-between;}
 .feat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(27,42,74,.10);border-color:var(--navy-muted)}
 .feat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
 .feat-title{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:4px}
@@ -350,19 +350,22 @@ input.field:focus{border-color:var(--navy)}
           <div class="stat-card"><div class="stat-label">Total Analyses</div><div class="stat-val" id="stat-total">0</div><div class="stat-delta" id="stat-delta">Upload your first video</div></div>
           <div class="stat-card"><div class="stat-label">Best Score</div><div class="stat-val" id="stat-best" style="color:var(--blush-dark)">—</div><div class="stat-delta" id="stat-best-lbl" style="color:var(--ink-soft)">No analyses yet</div></div>
         </div>
-        <div class="section-hdr"><div class="section-title">Features</div><div class="section-sub">All powered by real video analysis</div></div>
         <div class="feat-grid">
           <div class="feat-card" onclick="showView('analysis',null)">
-            <div class="feat-arrow">→</div>
-            <div class="feat-icon" style="background:var(--blush-light)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blush-deep)" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-            <div class="feat-title">Solo Analysis</div>
-            <div class="feat-desc">Upload one video. AI scores Technique and Artistry across 13 YAGP criteria — alignment, turnout, épaulement, dynamics, stage presence and more.</div>
+            <div>
+              <div class="feat-icon" style="background:var(--blush-light);margin-bottom:16px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blush-deep)" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+              <div class="feat-title">Solo Analysis</div>
+              <div class="feat-desc">Upload one video. AI scores Technique and Artistry across 13 YAGP criteria — alignment, turnout, épaulement, dynamics, stage presence and more.</div>
+            </div>
+            <div style="margin-top:20px;font-size:13px;font-weight:600;color:var(--blush-deep)">Start analysis →</div>
           </div>
           <div class="feat-card" onclick="showView('progress',null)">
-            <div class="feat-arrow">→</div>
-            <div class="feat-icon" style="background:var(--green-light)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-            <div class="feat-title">Progress Tracking</div>
-            <div class="feat-desc">Compare two of your own performances across time. Get an objective verdict on whether you're progressing and what's changed.</div>
+            <div>
+              <div class="feat-icon" style="background:var(--green-light);margin-bottom:16px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+              <div class="feat-title">Progress Tracking</div>
+              <div class="feat-desc">Compare two of your own performances across time. Get an objective verdict on whether you're improving and what's changed.</div>
+            </div>
+            <div style="margin-top:20px;font-size:13px;font-weight:600;color:var(--green)">Track progress →</div>
           </div>
         </div>
         <div id="dash-history" style="margin-top:24px;display:none">
