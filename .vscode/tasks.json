@@ -5,9 +5,6 @@
       "label": "Start Élevé AI Server",
       "type": "shell",
       "command": "node server.js",
-      "runOptions": {
-        "runOn": "folderOpen"
-      },
       "presentation": {
         "reveal": "always",
         "panel": "new",
