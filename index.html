@@ -1330,13 +1330,36 @@ async function startGeminiAnalysis() {
     formData.append('style', S.style);
     formData.append('desc', document.getElementById('analysis-desc').value || '');
     formData.append('ageGroup', S.ageGroup || 'Junior');
-    setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',30,'Gemini processing video…');
+    setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',20,'Uploading video to Gemini…');
 
     const resp = await fetch('/api/gemini-analyze', { method:'POST', body:formData });
-    const result = await resp.json();
-    if (!resp.ok) throw new Error(result.error || `Gemini error ${resp.status}`);
+    if (!resp.ok) { const t = await resp.text(); throw new Error(`Server error ${resp.status}: ${t.slice(0,200)}`); }
 
-    setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',85,'Building report…');
+    // Read streaming NDJSON — server sends progress lines then final {status:'done',result:{...}}
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let result = null, buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line);
+          if (msg.status === 'error')      throw new Error(msg.error);
+          if (msg.status === 'uploading')  { setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',20, msg.message); }
+          if (msg.status === 'processing') setProc('proc-bar','proc-pct','proc-label', 45, msg.message);
+          if (msg.status === 'analyzing')  { setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label', 70, msg.message); }
+          if (msg.status === 'done')       result = msg.result;
+        } catch(e) { if (e.message && !e.message.startsWith('{')) throw e; }
+      }
+    }
+    if (!result) throw new Error('No result received from Gemini');
+
+    setStep(3,'done'); setStep(4,'active'); setProc('proc-bar','proc-pct','proc-label',85,'Building report…');
     await sleep(400);
     setStep(3,'done'); setStep(4,'active'); setProc('proc-bar','proc-pct','proc-label',95,'Finalising…');
     await sleep(300); setStep(4,'done'); setProc('proc-bar','proc-pct','proc-label',100,'Done!'); await sleep(300);

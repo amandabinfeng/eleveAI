@@ -84,16 +84,23 @@ app.post('/api/claude', async (req, res) => {
 if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
   const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 500 * 1024 * 1024 } });
 
-  app.post('/api/gemini-analyze', async (req, res) => {
+  app.post('/api/gemini-analyze', (req, res) => {
+    // Streaming NDJSON — keeps Codespaces proxy alive during long Gemini processing
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering
+    const send = (obj) => res.write(JSON.stringify(obj) + '\n');
+
     let tmpPath = null, uploadedFileName = null;
-    try {
-      // Run multer inside try so errors return JSON instead of HTML
+
+    const run = async () => {
+      // Parse multipart upload
       await new Promise((resolve, reject) => {
         upload.single('video')(req, res, (err) => err ? reject(err) : resolve());
       });
 
-      if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
-      if (!req.file)   return res.status(400).json({ error: 'No video file received' });
+      if (!GEMINI_KEY) throw new Error('GEMINI_API_KEY not set');
+      if (!req.file)   throw new Error('No video file received');
       tmpPath = req.file.path;
 
       const { style = 'Classical', desc = '', ageGroup = 'Junior' } = req.body;
@@ -102,20 +109,25 @@ if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
       const fileManager = new GoogleAIFileManager(GEMINI_KEY);
       const genAI       = new GoogleGenerativeAI(GEMINI_KEY);
 
+      send({ status: 'uploading', message: `Uploading ${req.file.originalname} to Gemini…` });
       console.log(`⬆  Uploading ${req.file.originalname} (${(req.file.size/1024/1024).toFixed(1)} MB) to Gemini…`);
       const uploadResult = await fileManager.uploadFile(tmpPath, { mimeType, displayName: req.file.originalname });
       uploadedFileName = uploadResult.file.name;
 
-      // Poll until ACTIVE
+      // Poll until ACTIVE — send keepalive every 5 s
+      send({ status: 'processing', message: 'Gemini processing video…' });
       let file = await fileManager.getFile(uploadedFileName);
       let attempts = 0;
-      while (file.state === 'PROCESSING' && attempts < 24) {
+      while (file.state === 'PROCESSING' && attempts < 36) {
         await new Promise(r => setTimeout(r, 5000));
+        send({ status: 'processing', message: `Processing… (${(attempts + 1) * 5}s)` });
         file = await fileManager.getFile(uploadedFileName);
         attempts++;
       }
       if (file.state !== 'ACTIVE') throw new Error(`Gemini file processing failed: ${file.state}`);
-      console.log('✓ Video ready for analysis');
+
+      send({ status: 'analyzing', message: 'Analysing performance with Gemini…' });
+      console.log('✓ Video ready — starting analysis');
 
       const ageFocusMap = {
         'Pre-competitive': 'DIVISION: Pre-competitive. COACHING FOCUS: Healthy foundations. Natural posture, relaxed arms, basic turnout, musicality. Be generous — habits are forming.',
@@ -153,22 +165,26 @@ Return ONLY valid JSON (no markdown, no extra text):
 {"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<observation>","timeStart":"<e.g. 0:10>","timeEnd":"<e.g. 0:20>"}],"improvements":[{"text":"<actionable correction>","timeStart":"<e.g. 0:15>","timeEnd":"<e.g. 0:25>"}],"coachNote":"<2-3 sentences>"}
 2-3 positives, 2-3 improvements.`;
 
-      const model  = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 4000 } });
-      const result = await model.generateContent([{ fileData: { fileUri: file.uri, mimeType } }, { text: prompt }]);
-      const text   = result.response.text();
-      console.log(`✓ Gemini analysis done`);
+      const model   = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 4000 } });
+      const result  = await model.generateContent([{ fileData: { fileUri: file.uri, mimeType } }, { text: prompt }]);
+      const text    = result.response.text();
+      console.log('✓ Gemini analysis done');
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
-      res.json(JSON.parse(jsonMatch[0]));
 
-    } catch (err) {
+      send({ status: 'done', result: JSON.parse(jsonMatch[0]) });
+      res.end();
+    };
+
+    run().catch((err) => {
       console.error('Gemini error:', err.message);
-      if (!res.headersSent) res.status(500).json({ error: err.message });
-    } finally {
+      send({ status: 'error', error: err.message });
+      res.end();
+    }).finally(() => {
       if (tmpPath)          try { fs.unlinkSync(tmpPath); } catch(_) {}
       if (uploadedFileName) try { new GoogleAIFileManager(GEMINI_KEY).deleteFile(uploadedFileName); } catch(_) {}
-    }
+    });
   });
 } else {
   app.post('/api/gemini-analyze', (_, res) => res.status(503).json({ error: 'Gemini not available — run npm install' }));
