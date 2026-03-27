@@ -1674,15 +1674,24 @@ function renderProgressResults(r) {
 
   // What improved / maintained / regressed
   const hasVid1 = !!S.prog1VideoURL, hasVid2 = !!S.prog2VideoURL;
+  const tsRegex = /\((\d{1,2}:\d{2})\)/g;
   const renderList = (items, color) => items.map(item => {
-    const ts1 = item.timeEarlier, ts2 = item.timeRecent;
+    let ts1 = item.timeEarlier, ts2 = item.timeRecent;
+    // Fallback: extract timestamps from observation text when structured fields are missing
+    if (!ts1 && !ts2 && item.observation) {
+      const matches = [...item.observation.matchAll(tsRegex)];
+      if (matches.length >= 2) { ts1 = matches[0][1]; ts2 = matches[1][1]; }
+      else if (matches.length === 1) { ts1 = matches[0][1]; }
+    }
+    // Strip embedded (mm:ss) from observation so they don't appear twice
+    const cleanObs = (item.observation || '').replace(/\(\d{1,2}:\d{2}\)/g, '').replace(/\s{2,}/g, ' ').trim();
     const chips = [
       ts1 ? `<span class="chip-meta" onclick="seekProgVideo('prog-video-1','${ts1}')" style="cursor:pointer;margin-right:6px">${ts1} Earlier ▶</span>` : '',
       ts2 ? `<span class="chip-meta" onclick="seekProgVideo('prog-video-2','${ts2}')" style="cursor:pointer">${ts2} Recent ▶</span>` : '',
     ].filter(Boolean).join('');
     return `<div class="imp-item" style="border-left:3px solid ${color}">
       <div style="font-size:13px;font-weight:600;color:${color};margin-bottom:4px">${item.area||''}</div>
-      <div style="font-size:12px;color:var(--ink-mid);line-height:1.6;margin-bottom:${chips?'6px':'0'}">${item.observation||''}</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.6;margin-bottom:${chips?'6px':'0'}">${cleanObs}</div>
       ${chips ? `<div style="margin-top:2px">${chips}</div>` : ''}
     </div>`;
   }).join('');
