@@ -928,36 +928,44 @@ async function extractFramesIsolated(file) {
         const W = 640, H = Math.round(640 * (video.videoHeight / video.videoWidth)) || 480;
         canvas.width = W; canvas.height = H; small.width = 80; small.height = Math.round(80*H/W);
 
-        // Pass 1: motion + brightness probe across full timeline
+        // Pass 1: motion + variance probe across full timeline
+        // Variance measures visual complexity — empty uniform stage = low, dancer on stage = high
         const probeCount = Math.min(80, Math.ceil(dur / PROBE_GAP)), probeData = []; let prevPixels = null;
         for (let i = 0; i <= probeCount; i++) {
           const t = (dur / probeCount) * i;
           await seekTo(t);
           sctx.drawImage(video, 0, 0, small.width, small.height);
           const pixels = sctx.getImageData(0, 0, small.width, small.height).data;
-          let motion = 0, brightness = 0;
+          let motion = 0, mean = 0, variance = 0;
+          const n = pixels.length / 4;
+          for (let p = 0; p < pixels.length; p += 4) mean += (pixels[p] + pixels[p+1] + pixels[p+2]) / 3;
+          mean /= n;
           for (let p = 0; p < pixels.length; p += 4) {
-            brightness += pixels[p]*0.299 + pixels[p+1]*0.587 + pixels[p+2]*0.114;
+            const v = (pixels[p] + pixels[p+1] + pixels[p+2]) / 3;
+            variance += (v - mean) * (v - mean);
             if (prevPixels) motion += Math.abs(pixels[p]-prevPixels[p])+Math.abs(pixels[p+1]-prevPixels[p+1])+Math.abs(pixels[p+2]-prevPixels[p+2]);
           }
-          brightness /= (pixels.length/4);
-          if (prevPixels) motion /= (pixels.length/4);
-          probeData.push({ time: t, motion, brightness }); prevPixels = pixels.slice();
+          variance /= n;
+          if (prevPixels) motion /= n;
+          probeData.push({ time: t, motion, variance }); prevPixels = pixels.slice();
         }
 
-        // Pass 2: temporal segmentation — divide full timeline into API_FRAMES segments.
-        // Skip dark frames (brightness < 20) — likely before dancer enters or after they exit.
-        // Pick highest-motion frame within each segment; fall back to brightest if all dark.
-        const segWidth = dur / API_FRAMES;
+        // Pass 2: find performance window — first and last probe where dancer is on stage
+        // A uniform empty stage has low variance; dancer on stage raises it significantly
+        const VARIANCE_THRESHOLD = 200;
+        const activeProbes = probeData.filter(p => p.variance > VARIANCE_THRESHOLD);
+        const perfStart = activeProbes.length > 0 ? Math.max(0, activeProbes[0].time - 0.3) : 0;
+        const perfEnd   = activeProbes.length > 0 ? Math.min(dur, activeProbes[activeProbes.length-1].time + 0.3) : dur;
+
+        // Pass 3: segment only within the performance window, pick highest-motion frame per segment
+        const segWidth = (perfEnd - perfStart) / API_FRAMES;
         const selected = [];
         for (let seg = 0; seg < API_FRAMES; seg++) {
-          const segStart = seg * segWidth, segEnd = (seg + 1) * segWidth;
+          const segStart = perfStart + seg * segWidth, segEnd = segStart + segWidth;
           const segProbes = probeData.filter(p => p.time >= segStart && p.time < segEnd);
-          const litProbes = segProbes.filter(p => p.brightness > 20);
-          const pool = litProbes.length > 0 ? litProbes : segProbes;
-          if (pool.length > 0) {
-            pool.sort((a, b) => b.motion - a.motion);
-            selected.push(pool[0].time);
+          if (segProbes.length > 0) {
+            segProbes.sort((a, b) => b.motion - a.motion);
+            selected.push(segProbes[0].time);
           } else {
             selected.push(Math.min(segStart + segWidth / 2, dur - 0.1));
           }
