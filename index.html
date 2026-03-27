@@ -250,13 +250,18 @@ input.field:focus{border-color:var(--navy)}
 @media print {
   body { background:#fff; }
   .sidebar, .topbar, #analysis-upload, #analysis-processing,
-  button, .report-action-bar { display:none !important; }
+  button, .report-action-bar, #fallback-notice, #frames-in-report { display:none !important; }
   .content { padding:0 !important; }
+  .app { display:block !important; }
   #analysis-report { display:block !important; }
-  .panel { box-shadow:none !important; border:1px solid #e0e0e0; }
+  .feature-layout { display:block !important; }
+  .feature-layout > div { width:100% !important; margin-bottom:16px; }
+  .panel { box-shadow:none !important; border:1px solid #e0e0e0; break-inside:avoid; }
   .progress-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .dim-bar-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .score-ring { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .dim-bar-fill, .score-ring-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 }
 </style>
 </head>
