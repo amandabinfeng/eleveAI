@@ -950,12 +950,20 @@ async function extractFramesIsolated(file) {
           probeData.push({ time: t, motion, variance }); prevPixels = pixels.slice();
         }
 
-        // Pass 2: find performance window — first and last probe where dancer is on stage
-        // A uniform empty stage has low variance; dancer on stage raises it significantly
-        const VARIANCE_THRESHOLD = 200;
+        // Pass 2: find performance window using adaptive variance threshold.
+        // Use the 35th percentile of all probe variances as the threshold — this adapts
+        // to any stage colour, since empty-stage frames cluster at the low end.
+        const sortedVar = [...probeData].map(p => p.variance).sort((a, b) => a - b);
+        const VARIANCE_THRESHOLD = sortedVar[Math.floor(sortedVar.length * 0.35)];
         const activeProbes = probeData.filter(p => p.variance > VARIANCE_THRESHOLD);
-        const perfStart = activeProbes.length > 0 ? Math.max(0, activeProbes[0].time - 0.3) : 0;
-        const perfEnd   = activeProbes.length > 0 ? Math.min(dur, activeProbes[activeProbes.length-1].time + 0.3) : dur;
+        // Also enforce a minimum trim: skip the first and last 2% of the video (entrance/bow walk-off)
+        const minTrim = dur * 0.02;
+        const perfStart = activeProbes.length > 0
+          ? Math.max(minTrim, activeProbes[0].time - 0.2)
+          : minTrim;
+        const perfEnd = activeProbes.length > 0
+          ? Math.min(dur - minTrim, activeProbes[activeProbes.length - 1].time + 0.2)
+          : dur - minTrim;
 
         // Pass 3: segment only within the performance window, pick highest-motion frame per segment
         const segWidth = (perfEnd - perfStart) / API_FRAMES;
