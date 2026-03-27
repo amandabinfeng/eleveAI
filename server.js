@@ -28,7 +28,7 @@ const PORT         = 3001;
 const API_KEY      = process.env.OPENAI_API_KEY;
 const MODEL        = process.env.OPENAI_MODEL || 'gpt-4o';
 const GEMINI_KEY   = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 
 if (!API_KEY) {
   console.warn('\n⚠️   OPENAI_API_KEY not set — server will start but analyses will fail.');
@@ -121,34 +121,32 @@ if (GoogleGenerativeAI) {
         'Senior':          'DIVISION: Senior. COACHING FOCUS: Near-professional standard. High technical floor. Genuine artistic interpretation through the steps, stylistic authenticity.',
       };
 
-      const prompt = `You are a senior ballet adjudicator and coach with 20+ years experience, trained in YAGP evaluation standards.
+      const prompt = `Act as a professional Ballet Adjudicator and Technical Coach with 20+ years of YAGP competition experience.
 
-Watch this full ballet performance video from start to finish. You are seeing continuous movement — assess the complete arc of every jump (including the peak), full rotations of turns, quality of transitions, and dynamic flow across the entire variation.
+Watch this full ballet performance video from start to finish. You are seeing continuous movement — assess the complete arc of every jump (including peak height and ballon), full rotations of turns from preparation to landing, quality of transitions, and dynamic flow across the entire variation. Note specific timestamps (m:ss) for every observation.
 
 Ballet style: ${style}.${desc ? ' Dancer context: ' + desc : ''}
 ${ageFocusMap[ageGroup] || ageFocusMap['Junior']}
 
-Score using the YAGP two-pillar system. Each pillar is 0–100. Overall = average of both.
+Perform a high-precision technical audit using standard ballet terminology (en dehors, plié, allongé, épaulement, ballon, port de bras, arabesque, etc.):
 
-TECHNIQUE dimensions (each 0–100):
-- alignment: Plumb line, neutral pelvis, vertical spine
-- turnout: En dehors from the hip (not forced at foot/knee)
-- execution: Quality of jumps, turns, extensions, transitions
-- pointework: Foot articulation, demi-pointe/pointe safety and control
-- musicality: Timing, phrasing, rhythmic accuracy
-- control: Strength, stability, balance, clean landings
+ALIGNMENT & PLACEMENT: Evaluate verticality of the spine, stability of the supporting leg, squareness of hips and shoulders during transitions and held positions.
 
-ARTISTRY dimensions (each 0–100):
-- line: Overall body line, length, shape in space
-- epaulement: Relationship between arms, head, and torso
-- portDeBras: Arm flow and quality through transitions
-- style: Fidelity to choreographic style and period conventions
-- dynamics: Contrast between fast/slow, light/heavy, tension/release
-- presence: Stage projection, professional focus, eye focus
-- expression: Authentic emotional connection and commitment to the music
+TURNOUT & LINE: Track rotation specifically from the hip sockets (en dehors) — not the ankles or knees. Critique the line in arabesque, attitude, and the height/extension of the working leg.
+
+FOOTWORK & JUMPS: Analyze articulation through the feet (rolling through the floor in pliés and relevés), ballon and buoyancy in jumps, and whether landings are controlled and silent.
+
+SPATIAL AWARENESS: Comment on use of stage space, clarity of épaulement (head/shoulder placement), and precision of the dancer's track during traveling steps.
+
+ARTISTRY: Assess port de bras quality and flow, dynamic contrast (fast/slow, light/heavy, tension/release), authentic expression, and stage presence.
+
+Score using the YAGP two-pillar system. Each pillar 0–100. Overall = average of both.
+
+TECHNIQUE (each 0–100): alignment, turnout, execution, pointework, musicality, control
+ARTISTRY (each 0–100): line, epaulement, portDeBras, style, dynamics, presence, expression
 
 Return ONLY valid JSON (no markdown, no extra text):
-{"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<observation>","timeStart":"<e.g. 0:10>","timeEnd":"<e.g. 0:20>"}],"improvements":[{"text":"<actionable correction>","timeStart":"<e.g. 0:15>","timeEnd":"<e.g. 0:25>"}],"coachNote":"<2-3 sentences>"}
+{"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<specific observation using ballet terminology>","timeStart":"<m:ss>","timeEnd":"<m:ss>"}],"improvements":[{"text":"<actionable correction with specific ballet term>","timeStart":"<m:ss>","timeEnd":"<m:ss>"}],"coachNote":"<2-3 sentences with 3 actionable rehearsal corrections using ballet terminology>"}
 2-3 positives, 2-3 improvements.`;
 
       const genAI  = new GoogleGenerativeAI(GEMINI_KEY);
@@ -228,34 +226,32 @@ if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
         'Senior':          'DIVISION: Senior. COACHING FOCUS: Near-professional standard. High technical floor. Genuine artistic interpretation through the steps, stylistic authenticity.',
       };
 
-      const prompt = `You are a senior ballet adjudicator and coach with 20+ years experience, trained in YAGP evaluation standards.
+      const prompt = `Act as a professional Ballet Adjudicator and Technical Coach with 20+ years of YAGP competition experience.
 
-Watch this full ballet performance video from start to finish. You are seeing continuous movement — assess the complete arc of every jump (including the peak), full rotations of turns, quality of transitions, and dynamic flow across the entire variation.
+Watch this full ballet performance video from start to finish. You are seeing continuous movement — assess the complete arc of every jump (including peak height and ballon), full rotations of turns from preparation to landing, quality of transitions, and dynamic flow across the entire variation. Note specific timestamps (m:ss) for every observation.
 
 Ballet style: ${style}.${desc ? ' Dancer context: ' + desc : ''}
 ${ageFocusMap[ageGroup] || ageFocusMap['Junior']}
 
-Score using the YAGP two-pillar system. Each pillar is 0–100. Overall = average of both.
+Perform a high-precision technical audit using standard ballet terminology (en dehors, plié, allongé, épaulement, ballon, port de bras, arabesque, etc.):
 
-TECHNIQUE dimensions (each 0–100):
-- alignment: Plumb line, neutral pelvis, vertical spine
-- turnout: En dehors from the hip (not forced at foot/knee)
-- execution: Quality of jumps, turns, extensions, transitions
-- pointework: Foot articulation, demi-pointe/pointe safety and control
-- musicality: Timing, phrasing, rhythmic accuracy
-- control: Strength, stability, balance, clean landings
+ALIGNMENT & PLACEMENT: Evaluate verticality of the spine, stability of the supporting leg, squareness of hips and shoulders during transitions and held positions.
 
-ARTISTRY dimensions (each 0–100):
-- line: Overall body line, length, shape in space
-- epaulement: Relationship between arms, head, and torso
-- portDeBras: Arm flow and quality through transitions
-- style: Fidelity to choreographic style and period conventions
-- dynamics: Contrast between fast/slow, light/heavy, tension/release
-- presence: Stage projection, professional focus, eye focus
-- expression: Authentic emotional connection and commitment to the music
+TURNOUT & LINE: Track rotation specifically from the hip sockets (en dehors) — not the ankles or knees. Critique the line in arabesque, attitude, and the height/extension of the working leg.
+
+FOOTWORK & JUMPS: Analyze articulation through the feet (rolling through the floor in pliés and relevés), ballon and buoyancy in jumps, and whether landings are controlled and silent.
+
+SPATIAL AWARENESS: Comment on use of stage space, clarity of épaulement (head/shoulder placement), and precision of the dancer's track during traveling steps.
+
+ARTISTRY: Assess port de bras quality and flow, dynamic contrast (fast/slow, light/heavy, tension/release), authentic expression, and stage presence.
+
+Score using the YAGP two-pillar system. Each pillar 0–100. Overall = average of both.
+
+TECHNIQUE (each 0–100): alignment, turnout, execution, pointework, musicality, control
+ARTISTRY (each 0–100): line, epaulement, portDeBras, style, dynamics, presence, expression
 
 Return ONLY valid JSON (no markdown, no extra text):
-{"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<observation>","timeStart":"<e.g. 0:10>","timeEnd":"<e.g. 0:20>"}],"improvements":[{"text":"<actionable correction>","timeStart":"<e.g. 0:15>","timeEnd":"<e.g. 0:25>"}],"coachNote":"<2-3 sentences>"}
+{"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<specific observation using ballet terminology>","timeStart":"<m:ss>","timeEnd":"<m:ss>"}],"improvements":[{"text":"<actionable correction with specific ballet term>","timeStart":"<m:ss>","timeEnd":"<m:ss>"}],"coachNote":"<2-3 sentences with 3 actionable rehearsal corrections using ballet terminology>"}
 2-3 positives, 2-3 improvements.`;
 
       const model   = genAI.getGenerativeModel({ model: GEMINI_MODEL, generationConfig: { maxOutputTokens: 4000 } });
