@@ -80,7 +80,86 @@ app.post('/api/claude', async (req, res) => {
   }
 });
 
-// Gemini video analysis endpoint
+// Expose Gemini key to frontend (for direct browser→Gemini upload, bypassing nginx 413 limit)
+app.get('/api/gemini-key', (_, res) => {
+  if (!GEMINI_KEY) return res.status(503).json({ error: 'GEMINI_API_KEY not set' });
+  res.json({ key: GEMINI_KEY });
+});
+
+// Gemini analysis by URI — browser uploads file directly to Gemini, sends us just the URI
+if (GoogleGenerativeAI) {
+  app.post('/api/gemini-analyze-uri', express.json({ limit: '1mb' }), async (req, res) => {
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no');
+    const send = (obj) => res.write(JSON.stringify(obj) + '\n');
+
+    try {
+      const { fileUri, mimeType = 'video/mp4', style = 'Classical', desc = '', ageGroup = 'Junior' } = req.body;
+      if (!fileUri) throw new Error('No fileUri provided');
+      if (!GEMINI_KEY) throw new Error('GEMINI_API_KEY not set');
+
+      send({ status: 'analyzing', message: 'Analysing performance with Gemini…' });
+
+      const ageFocusMap = {
+        'Pre-competitive': 'DIVISION: Pre-competitive. COACHING FOCUS: Healthy foundations. Natural posture, relaxed arms, basic turnout, musicality. Be generous — habits are forming.',
+        'Junior':          'DIVISION: Junior. COACHING FOCUS: Technical scrutiny. Controlled pirouettes, proper jump prep and landing, safe pointework, emerging épaulement, phrasing awareness.',
+        'Senior':          'DIVISION: Senior. COACHING FOCUS: Near-professional standard. High technical floor. Genuine artistic interpretation through the steps, stylistic authenticity.',
+      };
+
+      const prompt = `You are a senior ballet adjudicator and coach with 20+ years experience, trained in YAGP evaluation standards.
+
+Watch this full ballet performance video from start to finish. You are seeing continuous movement — assess the complete arc of every jump (including the peak), full rotations of turns, quality of transitions, and dynamic flow across the entire variation.
+
+Ballet style: ${style}.${desc ? ' Dancer context: ' + desc : ''}
+${ageFocusMap[ageGroup] || ageFocusMap['Junior']}
+
+Score using the YAGP two-pillar system. Each pillar is 0–100. Overall = average of both.
+
+TECHNIQUE dimensions (each 0–100):
+- alignment: Plumb line, neutral pelvis, vertical spine
+- turnout: En dehors from the hip (not forced at foot/knee)
+- execution: Quality of jumps, turns, extensions, transitions
+- pointework: Foot articulation, demi-pointe/pointe safety and control
+- musicality: Timing, phrasing, rhythmic accuracy
+- control: Strength, stability, balance, clean landings
+
+ARTISTRY dimensions (each 0–100):
+- line: Overall body line, length, shape in space
+- epaulement: Relationship between arms, head, and torso
+- portDeBras: Arm flow and quality through transitions
+- style: Fidelity to choreographic style and period conventions
+- dynamics: Contrast between fast/slow, light/heavy, tension/release
+- presence: Stage projection, professional focus, eye focus
+- expression: Authentic emotional connection and commitment to the music
+
+Return ONLY valid JSON (no markdown, no extra text):
+{"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<observation>","timeStart":"<e.g. 0:10>","timeEnd":"<e.g. 0:20>"}],"improvements":[{"text":"<actionable correction>","timeStart":"<e.g. 0:15>","timeEnd":"<e.g. 0:25>"}],"coachNote":"<2-3 sentences>"}
+2-3 positives, 2-3 improvements.`;
+
+      const genAI  = new GoogleGenerativeAI(GEMINI_KEY);
+      const model  = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 4000 } });
+      const result = await model.generateContent([{ fileData: { fileUri, mimeType } }, { text: prompt }]);
+      const text   = result.response.text();
+      console.log('✓ Gemini analysis done');
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
+
+      send({ status: 'done', result: JSON.parse(jsonMatch[0]) });
+      res.end();
+    } catch (err) {
+      console.error('Gemini URI analysis error:', err.message);
+      send({ status: 'error', error: err.message });
+      res.end();
+    }
+  });
+} else {
+  app.get('/api/gemini-key', (_, res) => res.status(503).json({ error: 'Gemini not available' }));
+  app.post('/api/gemini-analyze-uri', (_, res) => res.status(503).json({ error: 'Gemini not available — run npm install' }));
+}
+
+// Gemini video analysis endpoint (legacy — local use only, nginx blocks large uploads in Codespaces)
 if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
   const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 500 * 1024 * 1024 } });
 

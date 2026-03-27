@@ -1324,18 +1324,72 @@ async function startGeminiAnalysis() {
   document.getElementById('analysis-processing').style.display = 'block';
   document.getElementById('analysis-report').style.display = 'none';
   try {
-    setStep(1,'active'); setProc('proc-bar','proc-pct','proc-label',10,'Uploading video to Gemini…');
-    const formData = new FormData();
-    formData.append('video', S.analysisFile);
-    formData.append('style', S.style);
-    formData.append('desc', document.getElementById('analysis-desc').value || '');
-    formData.append('ageGroup', S.ageGroup || 'Junior');
-    setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',20,'Uploading video to Gemini…');
+    const style    = S.style;
+    const desc     = document.getElementById('analysis-desc').value || '';
+    const ageGroup = S.ageGroup || 'Junior';
 
-    const resp = await fetch('/api/gemini-analyze', { method:'POST', body:formData });
+    // Step 1: Get Gemini key from server
+    setStep(1,'active'); setProc('proc-bar','proc-pct','proc-label',5,'Connecting to Gemini…');
+    const keyResp = await fetch('/api/gemini-key');
+    if (!keyResp.ok) throw new Error('Gemini API key not available on server');
+    const { key: geminiKey } = await keyResp.json();
+
+    // Step 2: Upload video directly from browser to Gemini Files API (bypasses nginx size limit)
+    setProc('proc-bar','proc-pct','proc-label',10,'Uploading video directly to Gemini…');
+    const file     = S.analysisFile;
+    const mimeType = file.type || 'video/mp4';
+
+    // Multipart upload to Gemini Files API
+    const boundary = '-------gemini' + Date.now();
+    const metaPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ file: { displayName: file.name } })}\r\n`;
+    const dataPart = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
+    const endPart  = `\r\n--${boundary}--`;
+
+    const metaBytes = new TextEncoder().encode(metaPart);
+    const dataBytes = new TextEncoder().encode(dataPart);
+    const endBytes  = new TextEncoder().encode(endPart);
+    const fileBytes = new Uint8Array(await file.arrayBuffer());
+
+    const body = new Uint8Array(metaBytes.length + dataBytes.length + fileBytes.length + endBytes.length);
+    let offset = 0;
+    [metaBytes, dataBytes, fileBytes, endBytes].forEach(b => { body.set(b, offset); offset += b.length; });
+
+    const uploadResp = await fetch(
+      `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=multipart&key=${geminiKey}`,
+      { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body }
+    );
+    if (!uploadResp.ok) {
+      const t = await uploadResp.text();
+      throw new Error(`Gemini upload failed ${uploadResp.status}: ${t.slice(0,200)}`);
+    }
+    const uploadData = await uploadResp.json();
+    const fileName   = uploadData.file.name;
+    const fileUri    = uploadData.file.uri;
+    setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',30,'Video uploaded — waiting for Gemini to process…');
+
+    // Step 3: Poll until ACTIVE
+    let fileState = uploadData.file.state;
+    let pollCount = 0;
+    while (fileState === 'PROCESSING' && pollCount < 36) {
+      await sleep(5000);
+      pollCount++;
+      setProc('proc-bar','proc-pct','proc-label', 30 + Math.min(pollCount * 2, 20), `Processing… (${pollCount * 5}s)`);
+      const pollResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiKey}`);
+      const pollData = await pollResp.json();
+      fileState = pollData.state;
+    }
+    if (fileState !== 'ACTIVE') throw new Error(`Gemini file processing failed: ${fileState}`);
+
+    // Step 4: Send URI to server for analysis (tiny JSON payload — no nginx size issue)
+    setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',55,'Analysing performance with Gemini…');
+    const resp = await fetch('/api/gemini-analyze-uri', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileUri, mimeType, style, desc, ageGroup })
+    });
     if (!resp.ok) { const t = await resp.text(); throw new Error(`Server error ${resp.status}: ${t.slice(0,200)}`); }
 
-    // Read streaming NDJSON — server sends progress lines then final {status:'done',result:{...}}
+    // Read streaming NDJSON response
     const reader  = resp.body.getReader();
     const decoder = new TextDecoder();
     let result = null, buf = '';
@@ -1349,15 +1403,16 @@ async function startGeminiAnalysis() {
         if (!line.trim()) continue;
         try {
           const msg = JSON.parse(line);
-          if (msg.status === 'error')      throw new Error(msg.error);
-          if (msg.status === 'uploading')  { setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',20, msg.message); }
-          if (msg.status === 'processing') setProc('proc-bar','proc-pct','proc-label', 45, msg.message);
-          if (msg.status === 'analyzing')  { setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label', 70, msg.message); }
-          if (msg.status === 'done')       result = msg.result;
+          if (msg.status === 'error')     throw new Error(msg.error);
+          if (msg.status === 'analyzing') setProc('proc-bar','proc-pct','proc-label', 70, msg.message);
+          if (msg.status === 'done')      result = msg.result;
         } catch(e) { if (e.message && !e.message.startsWith('{')) throw e; }
       }
     }
     if (!result) throw new Error('No result received from Gemini');
+
+    // Clean up uploaded file from Gemini
+    fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiKey}`, { method: 'DELETE' }).catch(()=>{});
 
     setStep(3,'done'); setStep(4,'active'); setProc('proc-bar','proc-pct','proc-label',85,'Building report…');
     await sleep(400);
