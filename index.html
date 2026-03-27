@@ -1262,7 +1262,7 @@ async function startAnalysis() {
     setStep(2,'done');
 
     setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',65,'AI generating coaching feedback…');
-    const data = await claudeAPI({ model:MODEL, max_tokens:2500, messages:[{role:'user',content}] });
+    const data = await claudeAPI({ model:MODEL, max_tokens:4000, messages:[{role:'user',content}] });
     const rawText = data.content.find(b=>b.type==='text')?.text || '';
     if (!rawText.includes('{')) throw new Error(`AI returned an unexpected response: "${rawText.slice(0,150)}"`);
     const report = parseJSON(rawText);
