@@ -18,10 +18,9 @@ const API_KEY = process.env.OPENAI_API_KEY;
 const MODEL   = process.env.OPENAI_MODEL || 'gpt-4o';
 
 if (!API_KEY) {
-  console.error('\n❌  OPENAI_API_KEY not set.\n');
-  console.error('    In Codespaces: Secrets → add OPENAI_API_KEY');
-  console.error('    Locally:       OPENAI_API_KEY=sk-... node server.js\n');
-  process.exit(1);
+  console.warn('\n⚠️   OPENAI_API_KEY not set — server will start but analyses will fail.');
+  console.warn('    In Codespaces: Settings → Secrets → add OPENAI_API_KEY');
+  console.warn('    Locally:       OPENAI_API_KEY=sk-... node server.js\n');
 }
 
 app.use(cors());
@@ -78,14 +77,14 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('├─────────────────────────────────────────────────────────────────┤');
     console.log(`│  App URL:  ${fwdUrl}/index.html`);
     console.log('│  (Codespaces will also show a popup — click "Open in Browser")  │');
-    console.log('│  OpenAI API key: loaded ✓                                        │');
+    console.log(`│  OpenAI API key: ${API_KEY ? 'loaded ✓' : '⚠️  NOT SET — add in Codespaces Secrets'}`);
     console.log('└─────────────────────────────────────────────────────────────────┘\n');
   } else {
     console.log('\n┌──────────────────────────────────────────────────────┐');
     console.log('│           Élevé AI  —  Local Proxy Server            │');
     console.log('├──────────────────────────────────────────────────────┤');
     console.log(`│  Open:  http://localhost:${PORT}/index.html  │`);
-    console.log('│  OpenAI API key: loaded ✓                              │');
+    console.log(`│  OpenAI API key: ${API_KEY ? 'loaded ✓' : '⚠️  NOT SET'}                    │`);
     console.log('└──────────────────────────────────────────────────────┘\n');
   }
 });
