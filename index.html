@@ -181,15 +181,17 @@ input.field:focus{border-color:var(--navy)}
 .dim-list{display:flex;flex-direction:column;gap:12px;padding:0 24px 20px}
 .dim-row{display:flex;align-items:center;gap:12px}
 .dim-name{font-size:11px;color:var(--ink-mid);width:72px;flex-shrink:0}
-.dim-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.dim-track{flex:1;height:4px;background:var(--border);border-radius:3px;overflow:hidden}
 .dim-fill{height:100%;border-radius:3px;transition:width .8s var(--ease)}
 .dim-val{font-size:11px;color:var(--ink-soft);width:28px;text-align:right;flex-shrink:0;font-family:var(--font-mono)}
+.dim-section-label{font-size:9px;font-weight:600;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px;padding:0 4px}
 .chip-list{display:flex;flex-direction:column;gap:10px}
 .chip{display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:14px;border:.5px solid var(--border);background:var(--white)}
 .chip-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
 .chip-body{}
 .chip-text{font-size:12px;color:var(--ink-mid);line-height:1.6}
 .chip-meta{font-size:10px;color:var(--ink-soft);margin-top:4px;font-weight:500}
+.chip-meta[onclick]:hover{color:var(--navy);cursor:pointer}
 .cmp-scores{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .cmp-card{border-radius:16px;padding:20px;text-align:center}
 .cmp-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;font-weight:500}
@@ -257,7 +259,7 @@ input.field:focus{border-color:var(--navy)}
   .content { display:block !important; height:auto !important; overflow:visible !important; padding:16px !important; }
   .view { display:none !important; }
   #view-analysis { display:block !important; }
-  #analysis-upload, #analysis-processing, #fallback-notice, #frames-in-report { display:none !important; }
+  #analysis-upload, #analysis-processing, #fallback-notice, #frames-in-report, #report-video { display:none !important; }
   #analysis-report { display:block !important; }
   #analysis-report button { display:none !important; }
   .feature-layout { display:block !important; }
@@ -487,9 +489,6 @@ input.field:focus{border-color:var(--navy)}
           <div id="fallback-notice" style="display:none;margin-bottom:16px">
             <div class="banner banner-gold"><div class="banner-title">⚡ Backup AI model used</div><p>The primary AI model was under high demand, so this analysis used a backup model. Results may be slightly less detailed. <strong>Try again later</strong> for full-quality analysis — your video is still loaded.</p><button class="btn btn-ghost" style="margin-top:8px" onclick="document.getElementById('analysis-report').style.display='none';document.getElementById('analysis-upload').style.display='block'">← Try Again</button></div>
           </div>
-          <div id="frames-in-report" style="margin-bottom:16px;display:none">
-            <div class="panel"><div class="panel-head"><div class="panel-title">Analysed Frames</div></div><div class="panel-body"><div class="frames-grid" id="report-frames-grid"></div></div></div>
-          </div>
           <div class="feature-layout">
             <div>
               <div class="panel" style="margin-bottom:16px">
@@ -510,10 +509,29 @@ input.field:focus{border-color:var(--navy)}
                     <div style="font-family:var(--font-serif);font-size:28px;font-weight:600;color:var(--blush-deep)" id="artistry-score">—</div>
                   </div>
                 </div>
-                <div style="padding:0 20px 4px;font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;font-weight:500">Technique dimensions</div>
-                <div class="dim-list" id="dim-list-technique" style="margin-bottom:8px"></div>
-                <div style="padding:0 20px 4px;font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;font-weight:500">Artistry dimensions</div>
-                <div class="dim-list" id="dim-list-artistry" style="margin-bottom:4px"></div>
+              </div>
+              <div class="panel" style="margin-bottom:16px">
+                <div class="panel-head">
+                  <div class="panel-title">Performance Video</div>
+                  <div style="font-size:11px;color:var(--ink-soft)">Click a timestamp to jump to that moment</div>
+                </div>
+                <div class="panel-body" style="padding:0">
+                  <video id="report-video" controls playsinline style="width:100%;display:block;max-height:280px;background:#000;border-radius:0 0 8px 8px"></video>
+                </div>
+              </div>
+              <div class="panel" style="margin-bottom:16px">
+                <div class="panel-body">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+                    <div>
+                      <div class="dim-section-label">TECHNIQUE</div>
+                      <div class="dim-list" id="dim-list-technique" style="padding:0 4px 8px;gap:8px"></div>
+                    </div>
+                    <div>
+                      <div class="dim-section-label">ARTISTRY</div>
+                      <div class="dim-list" id="dim-list-artistry" style="padding:0 4px 8px;gap:8px"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="panel" style="margin-bottom:16px"><div class="panel-head"><div class="panel-title">Coach's Note</div></div><div class="panel-body"><div id="coach-note" style="font-size:12px;color:var(--ink-mid);line-height:1.75;font-style:italic"></div></div></div>
               <div id="keypoints-panel" style="margin-bottom:16px;display:none">
@@ -1501,6 +1519,9 @@ function renderAnalysisReport(r, thumbs, usedFallback) {
   const fallbackNotice = document.getElementById('fallback-notice');
   if (fallbackNotice) fallbackNotice.style.display = usedFallback ? 'block' : 'none';
 
+  const reportVid = document.getElementById('report-video');
+  if (reportVid && S.analysisVideoURL) reportVid.src = S.analysisVideoURL;
+
   const overall = r.overallScore || Math.round(((r.techniqueScore||0)+(r.artistryScore||0))/2) || 0;
   const tech = r.techniqueScore || 0;
   const art = r.artistryScore || 0;
@@ -1541,12 +1562,8 @@ function renderAnalysisReport(r, thumbs, usedFallback) {
   ].map(([n,v,c]) => dimRow(n, v||0, c)).join('');
 
   document.getElementById('coach-note').textContent = r.coachNote||'';
-  if (thumbs?.length) {
-    document.getElementById('report-frames-grid').innerHTML = thumbs.map((t,i)=>`<div class="frame-item done"><img src="${t}" alt=""/><div class="frame-num">${i+1}</div></div>`).join('');
-    document.getElementById('frames-in-report').style.display = 'block';
-  }
-  document.getElementById('positives-list').innerHTML = (r.positives||[]).map(p=>`<div class="chip"><div class="chip-dot" style="background:var(--green)"></div><div class="chip-body"><div class="chip-text">${p.text}</div><div class="chip-meta">${p.timeStart} — ${p.timeEnd}</div></div></div>`).join('');
-  document.getElementById('improvements-list').innerHTML = (r.improvements||[]).map(p=>`<div class="chip"><div class="chip-dot" style="background:var(--blush-dark)"></div><div class="chip-body"><div class="chip-text">${p.text}</div><div class="chip-meta">${p.timeStart} — ${p.timeEnd}</div></div></div>`).join('');
+  document.getElementById('positives-list').innerHTML = (r.positives||[]).map(p=>`<div class="chip"><div class="chip-dot" style="background:var(--green)"></div><div class="chip-body"><div class="chip-text">${p.text}</div><div class="chip-meta" onclick="seekReportVideo('${p.timeStart}')">${p.timeStart} — ${p.timeEnd} ▶</div></div></div>`).join('');
+  document.getElementById('improvements-list').innerHTML = (r.improvements||[]).map(p=>`<div class="chip"><div class="chip-dot" style="background:var(--blush-dark)"></div><div class="chip-body"><div class="chip-text">${p.text}</div><div class="chip-meta" onclick="seekReportVideo('${p.timeStart}')">${p.timeStart} — ${p.timeEnd} ▶</div></div></div>`).join('');
 
   if (r.keypointSummary) {
     document.getElementById('keypoints-grid').innerHTML = Object.entries(r.keypointSummary).map(([k,v]) => {
@@ -1565,6 +1582,18 @@ function renderAnalysisReport(r, thumbs, usedFallback) {
   updateDashboard();
 }
 
+function seekReportVideo(timeStr) {
+  const vid = document.getElementById('report-video');
+  if (!vid || !timeStr) return;
+  const parts = timeStr.trim().split(':');
+  const secs = parts.length === 2
+    ? parseInt(parts[0]) * 60 + parseFloat(parts[1])
+    : parseFloat(timeStr);
+  vid.currentTime = secs;
+  vid.play();
+  vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function exportPDF() {
   const pose = document.getElementById('report-badges')?.textContent?.trim() || 'Ballet Analysis';
   const orig = document.title;
@@ -1575,6 +1604,8 @@ function exportPDF() {
 
 function resetAnalysis() {
   S.analysisFile = null;
+  const reportVid = document.getElementById('report-video');
+  if (reportVid) { reportVid.pause(); reportVid.src = ''; }
   if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL); S.analysisVideoURL = '';
   document.getElementById('drop-zone').classList.remove('has-file');
   document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · no size limit</div>`;
