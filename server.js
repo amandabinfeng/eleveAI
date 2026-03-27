@@ -200,7 +200,7 @@ Return ONLY valid JSON (no markdown, no extra text):
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
 
-      send({ status: 'done', result: JSON.parse(jsonMatch[0]) });
+      send({ status: 'done', result: JSON.parse(jsonMatch[0]), usedFallback: usedModel !== GEMINI_MODEL, usedModel });
       res.end();
     } catch (err) {
       console.error('Gemini URI analysis error:', err.message);

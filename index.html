@@ -478,6 +478,9 @@ input.field:focus{border-color:var(--navy)}
               Export PDF
             </button>
           </div>
+          <div id="fallback-notice" style="display:none;margin-bottom:16px">
+            <div class="banner banner-gold"><div class="banner-title">⚡ Backup AI model used</div><p>The primary AI model was under high demand, so this analysis used a backup model. Results may be slightly less detailed. <strong>Try again later</strong> for full-quality analysis — your video is still loaded.</p><button class="btn btn-ghost" style="margin-top:8px" onclick="document.getElementById('analysis-report').style.display='none';document.getElementById('analysis-upload').style.display='block'">← Try Again</button></div>
+          </div>
           <div id="frames-in-report" style="margin-bottom:16px;display:none">
             <div class="panel"><div class="panel-head"><div class="panel-title">Analysed Frames</div></div><div class="panel-body"><div class="frames-grid" id="report-frames-grid"></div></div></div>
           </div>
@@ -1253,7 +1256,16 @@ function setProc(barId, pctId, labelId, pct, label) {
 function showError(containerId, msg) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px"><div class="banner-title">Error</div><p>${msg}</p><p style="margin-top:6px;opacity:.7">Check the proxy server is running, or add your API key in Profile → Settings.</p></div>`;
+  const is503 = msg && (msg.includes('503') || msg.includes('high demand') || msg.includes('Service Unavailable'));
+  if (is503) {
+    el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
+      <div class="banner-title">AI model temporarily unavailable</div>
+      <p>The AI is experiencing high demand right now. Your video is still loaded — try again in a moment.</p>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="startAnalysis()">Try Again</button>
+    </div>`;
+  } else {
+    el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px"><div class="banner-title">Error</div><p>${msg}</p><p style="margin-top:6px;opacity:.7">Check the proxy server is running, or add your API key in Profile → Settings.</p></div>`;
+  }
 }
 
 // ── Solo Analysis ──────────────────────────────────────────────────────────
@@ -1407,7 +1419,7 @@ async function startGeminiAnalysis() {
           const msg = JSON.parse(line);
           if (msg.status === 'error')     throw new Error(msg.error);
           if (msg.status === 'analyzing') setProc('proc-bar','proc-pct','proc-label', 70, msg.message);
-          if (msg.status === 'done')      result = msg.result;
+          if (msg.status === 'done')      { result = msg.result; S.usedFallback = !!msg.usedFallback; }
         } catch(e) { if (e.message && !e.message.startsWith('{')) throw e; }
       }
     }
@@ -1425,7 +1437,7 @@ async function startGeminiAnalysis() {
     const overallScore = result.overallScore || Math.round(((result.techniqueScore||0)+(result.artistryScore||0))/2);
     S.history.push({ id:Date.now(), type:'solo', pose:cap(result.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), report:result });
     saveHistory();
-    renderAnalysisReport(result, []);
+    renderAnalysisReport(result, [], S.usedFallback);
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-report').style.display = 'block';
   } catch(err) {
@@ -1470,11 +1482,14 @@ function toggleKeypoints() {
   icon.style.transform = open ? '' : 'rotate(90deg)';
 }
 
-function renderAnalysisReport(r, thumbs) {
+function renderAnalysisReport(r, thumbs, usedFallback) {
   document.getElementById('report-badges').innerHTML =
     `<span class="badge" style="background:var(--blush-light);color:var(--blush-deep)">${cap(r.pose||'Performance')}</span>
      <span class="badge" style="background:var(--navy-pale);color:var(--navy-mid)">${S.style}</span>
      <span class="badge" style="background:var(--green-light);color:var(--green)">● ${S.ageGroup}</span>`;
+
+  const fallbackNotice = document.getElementById('fallback-notice');
+  if (fallbackNotice) fallbackNotice.style.display = usedFallback ? 'block' : 'none';
 
   const overall = r.overallScore || Math.round(((r.techniqueScore||0)+(r.artistryScore||0))/2) || 0;
   const tech = r.techniqueScore || 0;
