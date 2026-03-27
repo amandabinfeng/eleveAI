@@ -28,7 +28,7 @@ const PORT         = 3001;
 const API_KEY      = process.env.OPENAI_API_KEY;
 const MODEL        = process.env.OPENAI_MODEL || 'gpt-4o';
 const GEMINI_KEY   = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
 if (!API_KEY) {
   console.warn('\n⚠️   OPENAI_API_KEY not set — server will start but analyses will fail.');
