@@ -3,6 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
   "postCreateCommand": "npm install",
   "postStartCommand": "npm start",
+  "postAttachCommand": "npm start",
   "forwardPorts": [3001],
   "portsAttributes": {
     "3001": {
