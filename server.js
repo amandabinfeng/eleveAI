@@ -176,7 +176,7 @@ Return ONLY valid JSON (no markdown, no extra text):
 4-5 positives, 4-5 improvements. Be specific and reference exact timestamps for each.`;
 
       const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-      const FALLBACK_MODELS = [GEMINI_MODEL, 'gemini-3.1-flash-lite-preview'];
+      const FALLBACK_MODELS = [GEMINI_MODEL, 'gemini-3.1-flash-lite-preview', 'gemini-1.5-flash'];
       let text, usedModel;
       for (const modelId of FALLBACK_MODELS) {
         try {
