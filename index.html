@@ -404,6 +404,13 @@ input.field:focus{border-color:var(--navy)}
                     </div>
                   </div>
                   <div>
+                    <label class="field-label">Analysis engine</label>
+                    <div class="style-row" id="engine-row">
+                      <div class="style-chip sel" onclick="setEngine('gpt4o',this)">GPT-4o · Frames</div>
+                      <div class="style-chip" onclick="setEngine('gemini',this)">Gemini · Full Video</div>
+                    </div>
+                  </div>
+                  <div>
                     <label class="field-label">Add context for better feedback</label>
                     <textarea class="field" rows="3" id="analysis-desc" placeholder="e.g. Intermediate level, working on arabesque. Struggling with hip alignment and back leg height. 3 years training."></textarea>
                   </div>
@@ -759,6 +766,7 @@ const MODEL = 'gpt-4o';
 const S = {
   style: 'Classical',
   ageGroup: 'Junior',
+  engine: 'gpt4o',
   analysisFile: null, analysisVideoURL: '',
   bench1File: null, bench2File: null,
   prog1File: null, prog2File: null,
@@ -1213,6 +1221,7 @@ function handleFile(file, slot) {
 }
 function setStyle(s, el) { S.style = s; document.querySelectorAll('#style-row .style-chip').forEach(c => c.classList.remove('sel')); el.classList.add('sel'); }
 function setAge(a, el) { S.ageGroup = a; document.querySelectorAll('#age-row .style-chip').forEach(c => c.classList.remove('sel')); el.classList.add('sel'); }
+function setEngine(e, el) { S.engine = e; document.querySelectorAll('#engine-row .style-chip').forEach(c => c.classList.remove('sel')); el.classList.add('sel'); }
 
 // ── Step/progress helpers ──────────────────────────────────────────────────
 function setStep(n, state) {
@@ -1248,6 +1257,7 @@ function showError(containerId, msg) {
 // ── Solo Analysis ──────────────────────────────────────────────────────────
 async function startAnalysis() {
   if (!S.analysisFile) return;
+  if (S.engine === 'gemini') return startGeminiAnalysis();
   document.getElementById('analysis-error').innerHTML = '';
   document.getElementById('analysis-upload').style.display = 'none';
   document.getElementById('analysis-processing').style.display = 'block';
@@ -1299,6 +1309,43 @@ async function startAnalysis() {
     S.history.push({ id:Date.now(), type:'solo', pose:cap(report.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report });
     saveHistory();
     renderAnalysisReport(report, usedThumbs);
+    document.getElementById('analysis-processing').style.display = 'none';
+    document.getElementById('analysis-report').style.display = 'block';
+  } catch(err) {
+    document.getElementById('analysis-processing').style.display = 'none';
+    document.getElementById('analysis-upload').style.display = 'block';
+    showError('analysis-error', err.message);
+  }
+}
+
+async function startGeminiAnalysis() {
+  document.getElementById('analysis-error').innerHTML = '';
+  document.getElementById('analysis-upload').style.display = 'none';
+  document.getElementById('analysis-processing').style.display = 'block';
+  document.getElementById('analysis-report').style.display = 'none';
+  try {
+    setStep(1,'active'); setProc('proc-bar','proc-pct','proc-label',10,'Uploading video to Gemini…');
+    const formData = new FormData();
+    formData.append('video', S.analysisFile);
+    formData.append('style', S.style);
+    formData.append('desc', document.getElementById('analysis-desc').value || '');
+    formData.append('ageGroup', S.ageGroup || 'Junior');
+    setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',30,'Gemini processing video…');
+
+    const resp = await fetch('/api/gemini-analyze', { method:'POST', body:formData });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.error || `Gemini error ${resp.status}`);
+
+    setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',85,'Building report…');
+    await sleep(400);
+    setStep(3,'done'); setStep(4,'active'); setProc('proc-bar','proc-pct','proc-label',95,'Finalising…');
+    await sleep(300); setStep(4,'done'); setProc('proc-bar','proc-pct','proc-label',100,'Done!'); await sleep(300);
+
+    S.lastReport = result; S.lastReportThumbs = [];
+    const overallScore = result.overallScore || Math.round(((result.techniqueScore||0)+(result.artistryScore||0))/2);
+    S.history.push({ id:Date.now(), type:'solo', pose:cap(result.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), report:result });
+    saveHistory();
+    renderAnalysisReport(result, []);
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-report').style.display = 'block';
   } catch(err) {

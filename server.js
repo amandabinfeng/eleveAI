@@ -3,6 +3,8 @@
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
+const fs      = require('fs');
+const os      = require('os');
 
 let fetch;
 try {
@@ -12,10 +14,20 @@ try {
   process.exit(1);
 }
 
-const app     = express();
-const PORT    = 3001;
-const API_KEY = process.env.OPENAI_API_KEY;
-const MODEL   = process.env.OPENAI_MODEL || 'gpt-4o';
+let multer, GoogleGenerativeAI, GoogleAIFileManager;
+try {
+  multer = require('multer');
+  ({ GoogleGenerativeAI } = require('@google/generative-ai'));
+  ({ GoogleAIFileManager } = require('@google/generative-ai/server'));
+} catch(e) {
+  console.warn('⚠️  Gemini dependencies not installed — run npm install');
+}
+
+const app          = express();
+const PORT         = 3001;
+const API_KEY      = process.env.OPENAI_API_KEY;
+const MODEL        = process.env.OPENAI_MODEL || 'gpt-4o';
+const GEMINI_KEY   = process.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
   console.warn('\n⚠️   OPENAI_API_KEY not set — server will start but analyses will fail.');
@@ -68,6 +80,98 @@ app.post('/api/claude', async (req, res) => {
   }
 });
 
+// Gemini video analysis endpoint
+if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
+  const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 500 * 1024 * 1024 } });
+
+  app.post('/api/gemini-analyze', upload.single('video'), async (req, res) => {
+    const tmpPath = req.file?.path;
+    let uploadedFileName = null;
+    try {
+      if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
+      if (!req.file)   return res.status(400).json({ error: 'No video file received' });
+
+      const { style = 'Classical', desc = '', ageGroup = 'Junior' } = req.body;
+      const mimeType = req.file.mimetype || 'video/mp4';
+
+      const fileManager = new GoogleAIFileManager(GEMINI_KEY);
+      const genAI       = new GoogleGenerativeAI(GEMINI_KEY);
+
+      // Upload to Gemini Files API
+      console.log(`⬆  Uploading ${req.file.originalname} (${(req.file.size/1024/1024).toFixed(1)} MB) to Gemini…`);
+      const uploadResult = await fileManager.uploadFile(tmpPath, { mimeType, displayName: req.file.originalname });
+      uploadedFileName = uploadResult.file.name;
+
+      // Poll until ACTIVE
+      let file = await fileManager.getFile(uploadedFileName);
+      let attempts = 0;
+      while (file.state === 'PROCESSING' && attempts < 24) {
+        await new Promise(r => setTimeout(r, 5000));
+        file = await fileManager.getFile(uploadedFileName);
+        attempts++;
+      }
+      if (file.state !== 'ACTIVE') throw new Error(`Gemini file processing failed: ${file.state}`);
+      console.log('✓ Video ready for analysis');
+
+      const ageFocusMap = {
+        'Pre-competitive': 'DIVISION: Pre-competitive. COACHING FOCUS: Healthy foundations. Natural posture, relaxed arms, basic turnout, musicality. Be generous — habits are forming.',
+        'Junior':          'DIVISION: Junior. COACHING FOCUS: Technical scrutiny. Controlled pirouettes, proper jump prep and landing, safe pointework, emerging épaulement, phrasing awareness.',
+        'Senior':          'DIVISION: Senior. COACHING FOCUS: Near-professional standard. High technical floor. Genuine artistic interpretation through the steps, stylistic authenticity.',
+      };
+
+      const prompt = `You are a senior ballet adjudicator and coach with 20+ years experience, trained in YAGP evaluation standards.
+
+Watch this full ballet performance video from start to finish. You are seeing continuous movement — assess the complete arc of every jump (including the peak), full rotations of turns, quality of transitions, and dynamic flow across the entire variation.
+
+Ballet style: ${style}.${desc ? ' Dancer context: ' + desc : ''}
+${ageFocusMap[ageGroup] || ageFocusMap['Junior']}
+
+Score using the YAGP two-pillar system. Each pillar is 0–100. Overall = average of both.
+
+TECHNIQUE dimensions (each 0–100):
+- alignment: Plumb line, neutral pelvis, vertical spine
+- turnout: En dehors from the hip (not forced at foot/knee)
+- execution: Quality of jumps, turns, extensions, transitions
+- pointework: Foot articulation, demi-pointe/pointe safety and control
+- musicality: Timing, phrasing, rhythmic accuracy
+- control: Strength, stability, balance, clean landings
+
+ARTISTRY dimensions (each 0–100):
+- line: Overall body line, length, shape in space
+- epaulement: Relationship between arms, head, and torso
+- portDeBras: Arm flow and quality through transitions
+- style: Fidelity to choreographic style and period conventions
+- dynamics: Contrast between fast/slow, light/heavy, tension/release
+- presence: Stage projection, professional focus, eye focus
+- expression: Authentic emotional connection and commitment to the music
+
+Return ONLY valid JSON (no markdown, no extra text):
+{"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<observation>","timeStart":"<e.g. 0:10>","timeEnd":"<e.g. 0:20>"}],"improvements":[{"text":"<actionable correction>","timeStart":"<e.g. 0:15>","timeEnd":"<e.g. 0:25>"}],"coachNote":"<2-3 sentences>"}
+2-3 positives, 2-3 improvements.`;
+
+      const model  = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 4000 } });
+      const result = await model.generateContent([{ fileData: { fileUri: file.uri, mimeType } }, { text: prompt }]);
+      const text   = result.response.text();
+      console.log(`✓ Gemini analysis done`);
+
+      // Parse JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
+      const report = JSON.parse(jsonMatch[0]);
+      res.json(report);
+
+    } catch (err) {
+      console.error('Gemini error:', err.message);
+      res.status(500).json({ error: err.message });
+    } finally {
+      if (tmpPath)          try { fs.unlinkSync(tmpPath); } catch(_) {}
+      if (uploadedFileName) try { new GoogleAIFileManager(GEMINI_KEY).deleteFile(uploadedFileName); } catch(_) {}
+    }
+  });
+} else {
+  app.post('/api/gemini-analyze', (_, res) => res.status(503).json({ error: 'Gemini not available — run npm install' }));
+}
+
 app.listen(PORT, '0.0.0.0', () => {
   const isCodespaces = !!process.env.CODESPACE_NAME;
   if (isCodespaces) {
@@ -77,7 +181,8 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('├─────────────────────────────────────────────────────────────────┤');
     console.log(`│  App URL:  ${fwdUrl}/index.html`);
     console.log('│  (Codespaces will also show a popup — click "Open in Browser")  │');
-    console.log(`│  OpenAI API key: ${API_KEY ? 'loaded ✓' : '⚠️  NOT SET — add in Codespaces Secrets'}`);
+    console.log(`│  OpenAI API key:  ${API_KEY    ? 'loaded ✓' : '⚠️  NOT SET — add in Codespaces Secrets'}`);
+    console.log(`│  Gemini API key:  ${GEMINI_KEY ? 'loaded ✓' : '⚠️  NOT SET — Gemini analysis unavailable'}`);
     console.log('└─────────────────────────────────────────────────────────────────┘\n');
   } else {
     console.log('\n┌──────────────────────────────────────────────────────┐');
