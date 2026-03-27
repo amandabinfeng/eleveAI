@@ -248,20 +248,21 @@ input.field:focus{border-color:var(--navy)}
   .content{padding:16px}
 }
 @media print {
-  body { background:#fff; }
-  .sidebar, .topbar, #analysis-upload, #analysis-processing,
-  button, .report-action-bar, #fallback-notice, #frames-in-report { display:none !important; }
-  .content { padding:0 !important; }
-  .app { display:block !important; }
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; box-sizing:border-box; }
+  html, body { height:auto !important; overflow:visible !important; background:#fff; }
+  .app { display:block !important; height:auto !important; overflow:visible !important; }
+  .sidebar { display:none !important; }
+  .main { display:block !important; height:auto !important; overflow:visible !important; width:100% !important; }
+  .topbar { display:none !important; }
+  .content { display:block !important; height:auto !important; overflow:visible !important; padding:16px !important; }
+  .view { display:none !important; }
+  #view-analysis { display:block !important; }
+  #analysis-upload, #analysis-processing, #fallback-notice, #frames-in-report { display:none !important; }
   #analysis-report { display:block !important; }
+  #analysis-report button { display:none !important; }
   .feature-layout { display:block !important; }
   .feature-layout > div { width:100% !important; margin-bottom:16px; }
-  .panel { box-shadow:none !important; border:1px solid #e0e0e0; break-inside:avoid; }
-  .progress-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .dim-bar-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .score-ring { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .dim-bar-fill, .score-ring-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .panel { box-shadow:none !important; border:1px solid #ddd !important; break-inside:avoid; margin-bottom:16px; }
 }
 </style>
 </head>
