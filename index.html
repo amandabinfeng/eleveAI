@@ -333,7 +333,6 @@ input.field:focus{border-color:var(--navy)}
             <div class="hero-desc">AI Vision analyzes actual frames from your video — body alignment, arm extension, turnout, balance — and returns coaching-grade technique feedback.</div>
             <div class="hero-actions">
               <button class="btn btn-blush" onclick="showView('analysis',null)">Start Analysis →</button>
-              <button class="btn btn-ghost" style="color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.2)" onclick="showView('benchmark',null)">Benchmark Comparison</button>
             </div>
           </div>
           <svg width="160" height="160" viewBox="0 0 56 68" fill="none" style="flex-shrink:0;opacity:.18;position:relative;z-index:1">
@@ -359,12 +358,6 @@ input.field:focus{border-color:var(--navy)}
             <div class="feat-icon" style="background:var(--blush-light)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blush-deep)" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div class="feat-title">Solo Analysis</div>
             <div class="feat-desc">Upload one video. AI scores Technique and Artistry across 13 YAGP criteria — alignment, turnout, épaulement, dynamics, stage presence and more.</div>
-          </div>
-          <div class="feat-card" onclick="showView('benchmark',null)">
-            <div class="feat-arrow">→</div>
-            <div class="feat-icon" style="background:var(--navy-pale)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="8" height="18" rx="2"/><rect x="13" y="3" width="8" height="18" rx="2"/></svg></div>
-            <div class="feat-title">Benchmark Comparison</div>
-            <div class="feat-desc">Compare your technique against a professional reference video. Get a ranked list of specific gaps to close.</div>
           </div>
           <div class="feat-card" onclick="showView('progress',null)">
             <div class="feat-arrow">→</div>
@@ -515,7 +508,7 @@ input.field:focus{border-color:var(--navy)}
                   <div class="panel-title">Performance Video</div>
                   <div style="font-size:11px;color:var(--ink-soft)">Click a timestamp to jump to that moment</div>
                 </div>
-                <div class="panel-body" style="padding:0">
+                <div class="panel-body" style="padding:0" id="report-video-panel">
                   <video id="report-video" controls playsinline style="width:100%;display:block;max-height:280px;background:#000;border-radius:0 0 8px 8px"></video>
                 </div>
               </div>
@@ -620,20 +613,6 @@ input.field:focus{border-color:var(--navy)}
           <div style="display:flex;gap:10px;margin-bottom:20px"><button class="btn btn-ghost" onclick="resetProgress()">← New Progress Check</button></div>
           <div id="verdict-banner" class="verdict-banner"><div class="verdict-icon" id="verdict-icon">—</div><div><div class="verdict-label" id="verdict-label">—</div><div class="verdict-rationale" id="verdict-rationale"></div></div></div>
           <div class="delta-grid" id="delta-grid" style="margin-bottom:20px"></div>
-          <!-- Frame strips -->
-          <div id="prog-frames-wrap" style="display:none;margin-bottom:20px">
-            <div style="font-family:var(--font-serif);font-size:20px;color:var(--navy);font-style:italic;margin-bottom:12px">Analysed Frames</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-              <div>
-                <div style="font-size:10px;font-weight:600;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Earlier (A)</div>
-                <div class="frames-grid" id="prog-frames-a" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))"></div>
-              </div>
-              <div>
-                <div style="font-size:10px;font-weight:600;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Recent (B)</div>
-                <div class="frames-grid" id="prog-frames-b" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))"></div>
-              </div>
-            </div>
-          </div>
           <div id="prog-changes-wrap" style="display:none">
             <div style="font-family:var(--font-serif);font-size:20px;color:var(--navy);font-style:italic;margin-bottom:14px">What Changed</div>
             <div class="imp-list" id="prog-changes-list"></div>
@@ -1168,7 +1147,7 @@ async function startAnalysis() {
 
     S.lastReport = report; S.lastReportThumbs = usedThumbs;
     const overallScore = report.overallScore || Math.round(((report.techniqueScore||0)+(report.artistryScore||0))/2);
-    S.history.push({ id:Date.now(), type:'solo', pose:cap(report.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report });
+    S.history.push({ id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||report.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report });
     saveHistory();
     renderAnalysisReport(report, usedThumbs);
     document.getElementById('analysis-processing').style.display = 'none';
@@ -1283,7 +1262,7 @@ async function startGeminiAnalysis() {
 
     S.lastReport = result; S.lastReportThumbs = [];
     const overallScore = result.overallScore || Math.round(((result.techniqueScore||0)+(result.artistryScore||0))/2);
-    S.history.push({ id:Date.now(), type:'solo', pose:cap(result.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), report:result });
+    S.history.push({ id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||result.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), report:result });
     saveHistory();
     renderAnalysisReport(result, [], S.usedFallback);
     document.getElementById('analysis-processing').style.display = 'none';
@@ -1667,7 +1646,7 @@ function renderHistoryRows(items) {
 
 function openHistoryItem(id) {
   const entry=S.history.find(h=>h.id===id); if(!entry) return;
-  if (entry.type==='solo'&&entry.report){showView('analysis',null);document.getElementById('analysis-upload').style.display='none';document.getElementById('analysis-processing').style.display='none';document.getElementById('analysis-report').style.display='block';S.style=entry.style||'Classical';renderAnalysisReport(entry.report,entry.thumbs||[]);}
+  if (entry.type==='solo'&&entry.report){showView('analysis',null);document.getElementById('analysis-upload').style.display='none';document.getElementById('analysis-processing').style.display='none';document.getElementById('analysis-report').style.display='block';S.style=entry.style||'Classical';S.analysisVideoURL=null;renderAnalysisReport(entry.report,entry.thumbs||[]);const vidPanel=document.getElementById('report-video-panel');if(vidPanel)vidPanel.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink-soft);font-size:13px">Video not available for past analyses</div>';}
   else if (entry.type==='progress'&&entry.progResult){showView('progress',null);document.getElementById('prog-upload').style.display='none';document.getElementById('prog-processing').style.display='none';document.getElementById('prog-results').style.display='block';renderProgressResults(entry.progResult);}
 }
 
