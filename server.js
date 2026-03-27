@@ -175,11 +175,27 @@ Return ONLY valid JSON (no markdown, no extra text):
 {"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<specific observation using ballet terminology>","timeStart":"<m:ss>","timeEnd":"<m:ss>"}],"improvements":[{"text":"<actionable correction with specific ballet term>","timeStart":"<m:ss>","timeEnd":"<m:ss>"}],"coachNote":"<2-3 sentences with 3 actionable rehearsal corrections using ballet terminology>"}
 4-5 positives, 4-5 improvements. Be specific and reference exact timestamps for each.`;
 
-      const genAI  = new GoogleGenerativeAI(GEMINI_KEY);
-      const model  = genAI.getGenerativeModel({ model: GEMINI_MODEL, generationConfig: { maxOutputTokens: 4000 } });
-      const result = await model.generateContent([{ fileData: { fileUri, mimeType } }, { text: prompt }]);
-      const text   = result.response.text();
-      console.log('✓ Gemini analysis done');
+      const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+      const FALLBACK_MODELS = [GEMINI_MODEL, 'gemini-3.1-flash-lite-preview'];
+      let text, usedModel;
+      for (const modelId of FALLBACK_MODELS) {
+        try {
+          console.log(`Trying model: ${modelId}`);
+          const model = genAI.getGenerativeModel({ model: modelId, generationConfig: { maxOutputTokens: 4000 } });
+          const result = await model.generateContent([{ fileData: { fileUri, mimeType } }, { text: prompt }]);
+          text = result.response.text();
+          usedModel = modelId;
+          console.log(`✓ Gemini analysis done (model: ${usedModel})`);
+          break;
+        } catch (modelErr) {
+          const is503 = modelErr.message?.includes('503') || modelErr.message?.includes('Service Unavailable') || modelErr.message?.includes('high demand');
+          if (is503 && modelId !== FALLBACK_MODELS[FALLBACK_MODELS.length - 1]) {
+            console.warn(`⚠️  ${modelId} unavailable (503), trying fallback...`);
+            continue;
+          }
+          throw modelErr;
+        }
+      }
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
