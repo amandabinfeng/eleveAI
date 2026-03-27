@@ -28,7 +28,7 @@ const PORT         = 3001;
 const API_KEY      = process.env.OPENAI_API_KEY;
 const MODEL        = process.env.OPENAI_MODEL || 'gpt-4o';
 const GEMINI_KEY   = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview';
 
 if (!API_KEY) {
   console.warn('\n⚠️   OPENAI_API_KEY not set — server will start but analyses will fail.');
@@ -79,6 +79,19 @@ app.post('/api/claude', async (req, res) => {
     console.error('Proxy error:', err.message);
     res.status(500).json({ error: { message: err.message } });
   }
+});
+
+// List available Gemini models (for debugging model name issues)
+app.get('/api/gemini-models', async (_, res) => {
+  if (!GEMINI_KEY) return res.status(503).json({ error: 'GEMINI_API_KEY not set' });
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_KEY}`);
+    const d = await r.json();
+    const models = (d.models || [])
+      .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+      .map(m => m.name);
+    res.json({ models });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Expose Gemini key to frontend (for direct browser→Gemini upload, bypassing nginx 413 limit)
