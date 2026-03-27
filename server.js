@@ -136,11 +136,14 @@ A well-prepared Junior with controlled technique and musical sensitivity SHOULD 
 FOCUS: Pirouette control, jump prep/landing, safe pointework, emerging épaulement, phrasing.`,
 
         'Senior': `DIVISION: Senior.
-CRITICAL — SCORE RELATIVE TO DIVISION: Near-professional standard. Score against Senior YAGP competitors.
+CRITICAL — SCORE RELATIVE TO DIVISION: Score against Senior YAGP/international competitors.
 YAGP SENIOR SCORING ANCHORS:
-- 90–96: High technical floor — clean lines, genuine artistic interpretation through the steps, stylistic authenticity to the variation's period and character. Falls or repeated wobbles are meaningful deductions.
-- 85–89: Strong technique with inconsistent artistic depth or minor technical errors.
-- Below 80: Multiple technical failures or generic performance lacking stylistic identity.
+- 98–100: World-class — Prix de Lausanne / international grand prix finalist level. Near-flawless execution, profound artistic depth, professional stage command.
+- 96–97: YAGP Finals qualifying standard. Exceptional technique, genuine artistry, stylistic authenticity. Top performers invited to finals.
+- 91–95: YAGP strong regional — top 12 placement. Solid technique with real artistry and only minor inconsistencies.
+- 86–90: Competitive regional level. Good foundations with developing artistry.
+- Below 86: Significant technical gaps or performance lacking stylistic identity.
+A well-prepared Senior placing top 12 at YAGP regional should score 91–95. Finals = 96–97. Prix de Lausanne calibre = 98+. Do not compress all good performances into a narrow band.
 FOCUS: Stylistic authenticity, genuine artistry through the steps, technical consistency.`,
       };
 
@@ -264,11 +267,14 @@ A well-prepared Junior with controlled technique and musical sensitivity SHOULD 
 FOCUS: Pirouette control, jump prep/landing, safe pointework, emerging épaulement, phrasing.`,
 
         'Senior': `DIVISION: Senior.
-CRITICAL — SCORE RELATIVE TO DIVISION: Near-professional standard. Score against Senior YAGP competitors.
+CRITICAL — SCORE RELATIVE TO DIVISION: Score against Senior YAGP/international competitors.
 YAGP SENIOR SCORING ANCHORS:
-- 90–96: High technical floor — clean lines, genuine artistic interpretation through the steps, stylistic authenticity to the variation's period and character. Falls or repeated wobbles are meaningful deductions.
-- 85–89: Strong technique with inconsistent artistic depth or minor technical errors.
-- Below 80: Multiple technical failures or generic performance lacking stylistic identity.
+- 98–100: World-class — Prix de Lausanne / international grand prix finalist level. Near-flawless execution, profound artistic depth, professional stage command.
+- 96–97: YAGP Finals qualifying standard. Exceptional technique, genuine artistry, stylistic authenticity. Top performers invited to finals.
+- 91–95: YAGP strong regional — top 12 placement. Solid technique with real artistry and only minor inconsistencies.
+- 86–90: Competitive regional level. Good foundations with developing artistry.
+- Below 86: Significant technical gaps or performance lacking stylistic identity.
+A well-prepared Senior placing top 12 at YAGP regional should score 91–95. Finals = 96–97. Prix de Lausanne calibre = 98+. Do not compress all good performances into a narrow band.
 FOCUS: Stylistic authenticity, genuine artistry through the steps, technical consistency.`,
       };
 

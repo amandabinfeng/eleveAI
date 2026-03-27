@@ -404,13 +404,6 @@ input.field:focus{border-color:var(--navy)}
                     </div>
                   </div>
                   <div>
-                    <label class="field-label">Analysis engine</label>
-                    <div class="style-row" id="engine-row">
-                      <div class="style-chip sel" onclick="setEngine('gpt4o',this)">GPT-4o · Frames</div>
-                      <div class="style-chip" onclick="setEngine('gemini',this)">Gemini · Full Video</div>
-                    </div>
-                  </div>
-                  <div>
                     <label class="field-label">Add context for better feedback</label>
                     <textarea class="field" rows="3" id="analysis-desc" placeholder="e.g. Intermediate level, working on arabesque. Struggling with hip alignment and back leg height. 3 years training."></textarea>
                   </div>
@@ -426,15 +419,15 @@ input.field:focus{border-color:var(--navy)}
                 <div class="panel-head"><div class="panel-title">How it works</div></div>
                 <div class="panel-body" style="font-size:12px;color:var(--ink-soft);line-height:1.8">
                   <div style="display:flex;flex-direction:column;gap:10px">
-                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">1</div><div>Browser extracts <strong>16 frames evenly across the full performance</strong> — entrance to exit, like a judge watching the whole variation</div></div>
-                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">2</div><div><strong>MediaPipe Pose</strong> extracts 33 keypoints from every frame</div></div>
-                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">3</div><div>AI analyzes your <strong>actual body position</strong> in each frame</div></div>
-                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blush-dark);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">4</div><div>Scores + coaching feedback based on <strong>real frames</strong></div></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">1</div><div>Video is sent to AI for <strong>full-performance analysis</strong> — no frame sampling</div></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">2</div><div>AI watches the <strong>complete video</strong> from entrance to exit</div></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">3</div><div>AI assesses every jump <strong>at peak</strong>, full turn rotations, all transitions</div></div>
+                    <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blush-dark);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600">4</div><div>Scores + coaching feedback with <strong>precise timestamps</strong> (m:ss)</div></div>
                   </div>
                 </div>
               </div>
               <div class="banner banner-blush"><div class="banner-title">Best results</div><p>· Full body visible, head to feet<br>· Good lighting, plain background<br>· Leotard + tights for clear lines<br>· Add your level + focus area in context</p></div>
-              <div class="banner banner-gold"><div class="banner-title">Cost per analysis</div><p>~$0.003–0.01 per analysis.<br>Motion-aware selection captures key technique moments.</p></div>
+              <div class="banner banner-gold"><div class="banner-title">Cost per analysis</div><p>~$0.02 per analysis.<br>Full video — AI sees every moment of the performance.</p></div>
             </div>
           </div>
         </div>
@@ -449,10 +442,9 @@ input.field:focus{border-color:var(--navy)}
                     <div class="progress-track"><div class="progress-fill" id="proc-bar" style="width:0%"></div></div>
                   </div>
                   <div class="steps-list">
-                    <div class="step-item"><div class="step-dot" id="s1-dot" style="background:var(--border)"></div><div class="step-label">Extracting frames from video</div><div class="step-status" id="s1-st"></div></div>
-                    <div class="step-item"><div class="step-dot" id="s1b-dot" style="background:var(--border)"></div><div class="step-label">MediaPipe: extracting 33 body keypoints per frame</div><div class="step-status" id="s1b-st"></div></div>
-                    <div class="step-item"><div class="step-dot" id="s2-dot" style="background:var(--border)"></div><div class="step-label">Computing joint angles &amp; technique scores</div><div class="step-status" id="s2-st"></div></div>
-                    <div class="step-item"><div class="step-dot" id="s3-dot" style="background:var(--border)"></div><div class="step-label">AI generating coaching feedback</div><div class="step-status" id="s3-st"></div></div>
+                    <div class="step-item"><div class="step-dot" id="s1-dot" style="background:var(--border)"></div><div class="step-label">Uploading video to AI</div><div class="step-status" id="s1-st"></div></div>
+                    <div class="step-item"><div class="step-dot" id="s2-dot" style="background:var(--border)"></div><div class="step-label">AI processing full performance video</div><div class="step-status" id="s2-st"></div></div>
+                    <div class="step-item"><div class="step-dot" id="s3-dot" style="background:var(--border)"></div><div class="step-label">Generating coaching feedback with timestamps</div><div class="step-status" id="s3-st"></div></div>
                     <div class="step-item"><div class="step-dot" id="s4-dot" style="background:var(--border)"></div><div class="step-label">Building your report</div><div class="step-status" id="s4-st"></div></div>
                   </div>
                   <div id="frames-display" style="display:none">
@@ -463,7 +455,7 @@ input.field:focus{border-color:var(--navy)}
               </div>
             </div>
             <div>
-              <div class="banner banner-navy"><div class="banner-title">What AI Vision sees</div><p>MediaPipe Pose extracts 33 body keypoints per frame and computes real joint angles (hip extension, knee angle, elbow line, shoulder tilt). The AI then uses these objective measurements — plus the actual video frames — to generate precise, angle-referenced coaching feedback.</p></div>
+              <div class="banner banner-navy"><div class="banner-title">What AI sees</div><p>The AI watches your full performance video from start to finish — not sampled frames. It sees every jump at its peak, complete turns from preparation to landing, and all transitions in real time. Coaching feedback references precise timestamps (m:ss) so you know exactly when each observation occurs.</p></div>
             </div>
           </div>
         </div>
@@ -482,7 +474,7 @@ input.field:focus{border-color:var(--navy)}
           <div class="feature-layout">
             <div>
               <div class="panel" style="margin-bottom:16px">
-                <div class="panel-head"><div class="panel-title">YAGP Score</div><div id="sparkle-badge" style="display:none;font-size:18px;letter-spacing:2px" title="Outstanding performance">✦✦✦</div></div>
+                <div class="panel-head"><div class="panel-title">AI Score</div><div id="sparkle-badge" style="display:none;font-size:18px;letter-spacing:2px" title="Outstanding performance">✦✦✦</div></div>
                 <div class="score-ring-wrap">
                   <div class="score-ring">
                     <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="8"/><circle cx="50" cy="50" r="40" fill="none" id="score-arc-track" stroke="var(--navy)" stroke-width="8" stroke-linecap="round" stroke-dasharray="251" id="score-arc" stroke-dashoffset="251" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s var(--ease),stroke .5s"/></svg>
@@ -1257,7 +1249,7 @@ function showError(containerId, msg) {
 // ── Solo Analysis ──────────────────────────────────────────────────────────
 async function startAnalysis() {
   if (!S.analysisFile) return;
-  if (S.engine === 'gemini') return startGeminiAnalysis();
+  return startGeminiAnalysis();
   document.getElementById('analysis-error').innerHTML = '';
   document.getElementById('analysis-upload').style.display = 'none';
   document.getElementById('analysis-processing').style.display = 'block';
