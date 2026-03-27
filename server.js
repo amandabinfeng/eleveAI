@@ -176,6 +176,94 @@ Return ONLY valid JSON (no markdown, no extra text):
       res.end();
     }
   });
+
+  // Progress comparison — receives two Gemini file URIs, compares both videos in one call
+  app.post('/api/gemini-compare-uri', express.json({ limit: '1mb' }), async (req, res) => {
+    try {
+      const {
+        fileUri1, mimeType1 = 'video/mp4',
+        fileUri2, mimeType2 = 'video/mp4',
+        context1 = 'Earlier performance', context2 = 'Recent performance',
+        ageGroup = 'Junior', style = 'Classical', variationName = ''
+      } = req.body;
+      if (!fileUri1 || !fileUri2) throw new Error('Both fileUri1 and fileUri2 are required');
+      if (!GEMINI_KEY) throw new Error('GEMINI_API_KEY not set');
+
+      const ageFocusMap = {
+        'Pre-competitive': `DIVISION: Pre-competitive. Score against Pre-competitive peers only. Choreography is simpler by design.
+SCORING ANCHORS: 90–96: clean posture, hip-initiated turnout, stays on music, genuine presence. 85–89: good foundations with inconsistency. Below 80: safety concerns.`,
+        'Junior': `DIVISION: Junior. Score against Junior YAGP peers.
+SCORING ANCHORS: 90–96: controlled pirouettes, safe pointework, emerging épaulement, musical phrasing. 85–89: solid with inconsistency. Below 80: repeated errors.`,
+        'Senior': `DIVISION: Senior. Score against Senior YAGP/international competitors.
+SCORING ANCHORS: 96–97: YAGP Finals standard. 91–95: strong regional top 12. 86–90: competitive regional. Below 86: significant gaps.`,
+      };
+
+      const pointeworkLabel = ageGroup === 'Pre-competitive' ? 'demi-pointe' : 'pointework';
+
+      const prompt = `Act as a professional Ballet Adjudicator with 20+ years of YAGP experience.
+
+You are watching TWO performances of ${variationName || 'the same variation'} by the same dancer at different points in time.
+
+VIDEO 1 — EARLIER performance: ${context1}
+VIDEO 2 — RECENT performance: ${context2}
+
+Ballet style: ${style}.
+${ageFocusMap[ageGroup] || ageFocusMap['Junior']}
+
+Watch both videos in full. Score EACH performance independently on all 13 YAGP dimensions (0–100):
+TECHNIQUE: alignment, turnout, execution, ${pointeworkLabel}, musicality, control
+ARTISTRY: line, epaulement, portDeBras, style, dynamics, presence, expression
+
+Then compare: identify what specifically improved, what stayed consistent, and what regressed between the two performances. Reference ballet terminology and specific timestamps where possible.
+
+Return ONLY valid JSON (no markdown):
+{
+  "earlier":{"techniqueScore":<N>,"artistryScore":<N>,"technique":{"alignment":<N>,"turnout":<N>,"execution":<N>,"pointework":<N>,"musicality":<N>,"control":<N>},"artistry":{"line":<N>,"epaulement":<N>,"portDeBras":<N>,"style":<N>,"dynamics":<N>,"presence":<N>,"expression":<N>}},
+  "recent":{"techniqueScore":<N>,"artistryScore":<N>,"technique":{"alignment":<N>,"turnout":<N>,"execution":<N>,"pointework":<N>,"musicality":<N>,"control":<N>},"artistry":{"line":<N>,"epaulement":<N>,"portDeBras":<N>,"style":<N>,"dynamics":<N>,"presence":<N>,"expression":<N>}},
+  "verdict":"improved"|"maintained"|"regressed",
+  "rationale":"<one sentence overall summary>",
+  "improved":[{"area":"<dimension or skill>","observation":"<specific detail with timestamps>"}],
+  "maintained":[{"area":"<...>","observation":"<...>"}],
+  "regressed":[{"area":"<...>","observation":"<...>"}],
+  "focusAreas":["<specific coaching priority 1>","<priority 2>","<priority 3>"]
+}`;
+
+      const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+      const FALLBACK_MODELS = [GEMINI_MODEL, 'gemini-3.1-flash-lite-preview', 'gemini-2.5-flash'];
+      let text, usedModel;
+      for (const modelId of FALLBACK_MODELS) {
+        try {
+          console.log(`Trying model for comparison: ${modelId}`);
+          const model = genAI.getGenerativeModel({ model: modelId, generationConfig: { maxOutputTokens: 5000 } });
+          const result = await model.generateContent([
+            { fileData: { fileUri: fileUri1, mimeType: mimeType1 } },
+            { fileData: { fileUri: fileUri2, mimeType: mimeType2 } },
+            { text: prompt }
+          ]);
+          text = result.response.text();
+          usedModel = modelId;
+          console.log(`✓ Gemini comparison done (model: ${usedModel})`);
+          break;
+        } catch (modelErr) {
+          const is503 = modelErr.message?.includes('503') || modelErr.message?.includes('Service Unavailable') || modelErr.message?.includes('high demand');
+          if (is503 && modelId !== FALLBACK_MODELS[FALLBACK_MODELS.length - 1]) {
+            console.warn(`⚠️  ${modelId} unavailable, trying fallback…`);
+            continue;
+          }
+          throw modelErr;
+        }
+      }
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
+
+      res.json({ result: JSON.parse(jsonMatch[0]), usedFallback: usedModel !== GEMINI_MODEL, usedModel });
+    } catch (err) {
+      console.error('Gemini compare error:', err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
 } else {
   app.get('/api/gemini-key', (_, res) => res.status(503).json({ error: 'Gemini not available' }));
   app.post('/api/gemini-analyze-uri', (_, res) => res.status(503).json({ error: 'Gemini not available — run npm install' }));

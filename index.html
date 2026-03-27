@@ -551,73 +551,81 @@ input.field:focus{border-color:var(--navy)}
 
       <!-- ── Progress ── -->
       <div class="view" id="view-progress">
-        <div class="section-hdr"><div class="section-title">Progress Tracking</div><div class="section-sub">Compare two of your own performances over time</div></div>
+        <div class="section-hdr"><div class="section-title">Progress Tracking</div><div class="section-sub">Compare two performances of the same variation over time</div></div>
         <div id="prog-upload">
-          <div class="feature-layout">
-            <div>
-              <div id="prog-error"></div>
-              <div class="panel" style="margin-bottom:16px">
-                <div class="panel-head"><div class="panel-title">Upload two of your videos</div></div>
-                <div class="panel-body">
-                  <div class="dual-upload">
-                    <div class="dual-slot" id="prog-slot-1" ondragover="onDrag(event,'prog-slot-1',true)" ondragleave="onDrag(event,'prog-slot-1',false)" ondrop="onDrop(event,'prog1')">
-                      <input type="file" accept="video/*" onchange="onFileInput(event,'prog1')"/>
-                      <div style="font-size:24px;margin-bottom:8px">📅</div>
-                      <div class="dual-slot-label" id="prog1-label">Earlier Performance</div>
-                      <div class="dual-slot-hint">e.g. January recording</div>
-                    </div>
-                    <div class="dual-slot" id="prog-slot-2" ondragover="onDrag(event,'prog-slot-2',true)" ondragleave="onDrag(event,'prog-slot-2',false)" ondrop="onDrop(event,'prog2')">
-                      <input type="file" accept="video/*" onchange="onFileInput(event,'prog2')"/>
-                      <div style="font-size:24px;margin-bottom:8px">🆕</div>
-                      <div class="dual-slot-label" id="prog2-label">Recent Performance</div>
-                      <div class="dual-slot-hint">e.g. this week</div>
-                    </div>
-                  </div>
-                  <div><label class="field-label">Context</label><textarea class="field" rows="2" id="prog-desc" placeholder="e.g. Arabesque — comparing January class vs this week's rehearsal. Working on turnout and back leg height."></textarea></div>
-                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--gold-light);border-radius:10px;border:.5px solid var(--gold)">
-                    <input type="checkbox" id="prog-sync-audio" style="width:15px;height:15px;accent-color:var(--navy);cursor:pointer;flex-shrink:0"/>
-                    <div>
-                      <label for="prog-sync-audio" style="font-size:11px;font-weight:500;color:var(--gold-dark);cursor:pointer">Auto-sync videos by music beat</label>
-                      <div style="font-size:10px;color:#6B4A10;margin-top:1px">Aligns both recordings to their first strong beat so the AI compares the same musical moment in each</div>
-                    </div>
-                  </div>
+          <div id="prog-error"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div class="panel">
+              <div class="panel-head"><div class="panel-title">Earlier Performance</div></div>
+              <div class="panel-body">
+                <div class="drop-zone" id="prog-slot-1" ondragover="onDrag(event,'prog-slot-1',true)" ondragleave="onDrag(event,'prog-slot-1',false)" ondrop="onDrop(event,'prog1')" onclick="this.querySelector('input').click()" style="cursor:pointer">
+                  <input type="file" accept="video/*" style="display:none" onchange="onFileInput(event,'prog1')"/>
+                  <div style="font-size:28px;margin-bottom:8px">📅</div>
+                  <div class="dual-slot-label" id="prog1-label">Click or drag to upload</div>
+                  <div style="font-size:11px;color:var(--ink-soft);margin-top:4px">e.g. Nov 2025 practice</div>
                 </div>
+                <input type="text" class="field" id="prog-context-1" placeholder="Label (e.g. Nov 2025 — Practice)" style="margin-top:10px;margin-bottom:0"/>
               </div>
-              <button class="btn btn-primary btn-full" id="prog-submit-btn" onclick="startProgress()" disabled>Compare My Progress</button>
             </div>
-            <div>
-              <div class="panel" style="margin-bottom:14px">
-                <div class="panel-head"><div class="panel-title">Score History</div></div>
-                <div class="panel-body"><div style="font-size:10px;color:var(--ink-soft);margin-bottom:10px">Overall score trend</div><div class="mini-chart" id="mini-chart"><div class="chart-bar" style="height:44%;background:var(--navy-pale)"><div class="chart-bar-lbl">—</div></div><div class="chart-bar" style="height:44%;background:var(--navy-pale)"><div class="chart-bar-lbl">—</div></div><div class="chart-bar" style="height:44%;background:var(--navy-pale)"><div class="chart-bar-lbl">—</div></div></div></div>
+            <div class="panel">
+              <div class="panel-head"><div class="panel-title">Recent Performance</div></div>
+              <div class="panel-body">
+                <div class="drop-zone" id="prog-slot-2" ondragover="onDrag(event,'prog-slot-2',true)" ondragleave="onDrag(event,'prog-slot-2',false)" ondrop="onDrop(event,'prog2')" onclick="this.querySelector('input').click()" style="cursor:pointer">
+                  <input type="file" accept="video/*" style="display:none" onchange="onFileInput(event,'prog2')"/>
+                  <div style="font-size:28px;margin-bottom:8px">🆕</div>
+                  <div class="dual-slot-label" id="prog2-label">Click or drag to upload</div>
+                  <div style="font-size:11px;color:var(--ink-soft);margin-top:4px">e.g. Mar 2026 competition</div>
+                </div>
+                <input type="text" class="field" id="prog-context-2" placeholder="Label (e.g. Mar 2026 — Competition)" style="margin-top:10px;margin-bottom:0"/>
               </div>
-              <div class="banner banner-navy"><div class="banner-title">How it works</div><p>AI analyzes both videos independently then compares technique dimensions — alignment, extension, turnout and balance — to give you an objective verdict on what's improved and what needs work.</p></div>
             </div>
           </div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="panel-head"><div class="panel-title">Performance details</div></div>
+            <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+              <div><label class="field-label">Variation name</label><input type="text" class="field" id="prog-variation" placeholder="e.g. Talisman" style="margin-bottom:0"/></div>
+              <div><label class="field-label">Age group</label><select class="field" id="prog-age-group" style="margin-bottom:0"><option value="Pre-competitive">Pre-competitive</option><option value="Junior" selected>Junior</option><option value="Senior">Senior</option></select></div>
+              <div><label class="field-label">Style</label><select class="field" id="prog-style" style="margin-bottom:0"><option value="Classical">Classical</option><option value="Contemporary">Contemporary</option><option value="Character">Character</option><option value="Neoclassical">Neoclassical</option></select></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" id="prog-submit-btn" onclick="startProgress()" disabled>Compare Performances →</button>
         </div>
         <div id="prog-processing" style="display:none">
           <div class="panel">
-            <div class="panel-head"><div class="panel-title">Tracking your progress…</div></div>
+            <div class="panel-head"><div class="panel-title">Comparing performances…</div></div>
             <div class="panel-body">
               <div class="progress-wrap">
                 <div class="progress-meta"><span id="prog-proc-label">Initialising…</span><span id="prog-proc-pct" style="font-weight:500;color:var(--navy)">0%</span></div>
                 <div class="progress-track"><div class="progress-fill" id="prog-proc-bar" style="width:0%"></div></div>
               </div>
               <div class="steps-list">
-                <div class="step-item"><div class="step-dot" id="ps1-dot" style="background:var(--border)"></div><div class="step-label">Analysing earlier performance</div><div class="step-status" id="ps1-st"></div></div>
-                <div class="step-item"><div class="step-dot" id="ps1b-dot" style="background:var(--border)"></div><div class="step-label">Analysing recent performance</div><div class="step-status" id="ps1b-st"></div></div>
-                <div class="step-item"><div class="step-dot" id="ps2-dot" style="background:var(--border)"></div><div class="step-label">Sending to AI Vision</div><div class="step-status" id="ps2-st"></div></div>
-                <div class="step-item"><div class="step-dot" id="ps3-dot" style="background:var(--border)"></div><div class="step-label">Detecting technique changes</div><div class="step-status" id="ps3-st"></div></div>
+                <div class="step-item"><div class="step-dot" id="ps1-dot" style="background:var(--border)"></div><div class="step-label">Uploading earlier performance to AI</div><div class="step-status" id="ps1-st"></div></div>
+                <div class="step-item"><div class="step-dot" id="ps2-dot" style="background:var(--border)"></div><div class="step-label">Uploading recent performance to AI</div><div class="step-status" id="ps2-st"></div></div>
+                <div class="step-item"><div class="step-dot" id="ps3-dot" style="background:var(--border)"></div><div class="step-label">AI comparing both performances</div><div class="step-status" id="ps3-st"></div></div>
               </div>
             </div>
           </div>
         </div>
         <div id="prog-results" style="display:none">
-          <div style="display:flex;gap:10px;margin-bottom:20px"><button class="btn btn-ghost" onclick="resetProgress()">← New Progress Check</button></div>
-          <div id="verdict-banner" class="verdict-banner"><div class="verdict-icon" id="verdict-icon">—</div><div><div class="verdict-label" id="verdict-label">—</div><div class="verdict-rationale" id="verdict-rationale"></div></div></div>
-          <div class="delta-grid" id="delta-grid" style="margin-bottom:20px"></div>
-          <div id="prog-changes-wrap" style="display:none">
-            <div style="font-family:var(--font-serif);font-size:20px;color:var(--navy);font-style:italic;margin-bottom:14px">What Changed</div>
-            <div class="imp-list" id="prog-changes-list"></div>
+          <div style="display:flex;gap:10px;margin-bottom:20px"><button class="btn btn-ghost" onclick="resetProgress()">← New Comparison</button></div>
+          <div id="prog-verdict-banner" class="verdict-banner" style="margin-bottom:20px"><div class="verdict-icon" id="prog-verdict-icon">—</div><div><div class="verdict-label" id="prog-verdict-label">—</div><div class="verdict-rationale" id="prog-verdict-rationale"></div></div></div>
+          <div id="prog-score-strip" style="margin-bottom:20px"></div>
+          <div id="prog-delta-grid" style="margin-bottom:20px"></div>
+          <div id="prog-improved-wrap" style="display:none;margin-bottom:16px">
+            <div style="font-family:var(--font-serif);font-size:20px;color:var(--green);font-style:italic;margin-bottom:12px">What Improved</div>
+            <div class="imp-list" id="prog-improved-list"></div>
+          </div>
+          <div id="prog-maintained-wrap" style="display:none;margin-bottom:16px">
+            <div style="font-family:var(--font-serif);font-size:20px;color:var(--navy);font-style:italic;margin-bottom:12px">Holding Strong</div>
+            <div class="imp-list" id="prog-maintained-list"></div>
+          </div>
+          <div id="prog-regressed-wrap" style="display:none;margin-bottom:16px">
+            <div style="font-family:var(--font-serif);font-size:20px;color:var(--blush-dark);font-style:italic;margin-bottom:12px">Needs Attention</div>
+            <div class="imp-list" id="prog-regressed-list"></div>
+          </div>
+          <div id="prog-focus-wrap" style="display:none">
+            <div style="font-family:var(--font-serif);font-size:20px;color:var(--navy);font-style:italic;margin-bottom:12px">Focus for Next Training Cycle</div>
+            <div class="panel"><div class="panel-body" id="prog-focus-list"></div></div>
           </div>
         </div>
       </div>
@@ -1424,7 +1432,7 @@ function resetAnalysis() {
   setProc('proc-bar','proc-pct','proc-label',0,'');
 }
 
-// ── Progress (FIXED: sequential extraction) ────────────────────────────────
+// ── Progress (Gemini two-video comparison) ─────────────────────────────────
 async function startProgress() {
   if (!S.prog1File || !S.prog2File) return;
   document.getElementById('prog-error').innerHTML = '';
@@ -1432,185 +1440,218 @@ async function startProgress() {
   document.getElementById('prog-processing').style.display = 'block';
   document.getElementById('prog-results').style.display = 'none';
 
+  let geminiKey, file1Name, file2Name;
+
   try {
-    // Step 1a: Audio sync (optional)
-    let pOffset1 = 0, pOffset2 = 0;
-    const doProgSync = document.getElementById('prog-sync-audio')?.checked;
-    if (doProgSync) {
-      setPStep(1,'active');
-      setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',5,'Detecting music beats…');
-      try {
-        const offsets = await detectSyncOffsets(S.prog1File, S.prog2File,
-          msg => setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',8, msg));
-        pOffset1 = offsets.offset1; pOffset2 = offsets.offset2;
-      } catch(e) { console.warn('Sync failed, proceeding without:', e.message); }
-    }
+    // Get Gemini key once
+    const keyResp = await fetch('/api/gemini-key');
+    if (!keyResp.ok) throw new Error('Could not get Gemini API key from server');
+    ({ key: geminiKey } = await keyResp.json());
 
-    // Step 1b: Extract EARLIER video first
-    setPStep(1,'active');
-    setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',12,
-      doProgSync ? `Extracting frames from earlier video (from beat at ${pOffset1.toFixed(1)}s)…` : 'Extracting frames from earlier video…');
-    let r1;
-    try { r1 = await extractFramesIsolatedFrom(S.prog1File, pOffset1); }
-    catch(e) { throw new Error('Could not extract frames from the earlier video: ' + e.message); }
+    // Upload helper — uploads one file to Gemini Files API and waits until ACTIVE
+    const uploadToGemini = async (file, stepNum, label) => {
+      setPStep(stepNum, 'active');
+      setProc('prog-proc-bar','prog-proc-pct','prog-proc-label', stepNum === 1 ? 5 : 40, `Uploading ${label}…`);
+      const mimeType = file.type || 'video/mp4';
+      const boundary = '-------gemini' + Date.now();
+      const metaPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ file: { displayName: file.name } })}\r\n`;
+      const dataPart = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
+      const endPart  = `\r\n--${boundary}--`;
+      const metaBytes = new TextEncoder().encode(metaPart);
+      const dataBytes = new TextEncoder().encode(dataPart);
+      const endBytes  = new TextEncoder().encode(endPart);
+      const fileBytes = new Uint8Array(await file.arrayBuffer());
+      const body = new Uint8Array(metaBytes.length + dataBytes.length + fileBytes.length + endBytes.length);
+      let off = 0;
+      [metaBytes, dataBytes, fileBytes, endBytes].forEach(b => { body.set(b, off); off += b.length; });
+      const upResp = await fetch(
+        `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=multipart&key=${geminiKey}`,
+        { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body }
+      );
+      if (!upResp.ok) { const t = await upResp.text(); throw new Error(`Upload failed (${upResp.status}): ${t.slice(0,200)}`); }
+      const upData = await upResp.json();
+      const fileName = upData.file.name;
+      const fileUri  = upData.file.uri;
+      let fileState = upData.file.state;
+      let pollCount = 0;
+      while (fileState === 'PROCESSING' && pollCount < 36) {
+        await sleep(5000); pollCount++;
+        setProc('prog-proc-bar','prog-proc-pct','prog-proc-label', stepNum === 1 ? 5 + pollCount : 40 + pollCount, `Processing ${label}… (${pollCount * 5}s)`);
+        const pollData = await (await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiKey}`)).json();
+        fileState = pollData.state;
+      }
+      if (fileState !== 'ACTIVE') throw new Error(`File processing failed: ${fileState}`);
+      setPStep(stepNum, 'done');
+      return { fileUri, fileName, mimeType };
+    };
 
-    // Step 1c: Extract RECENT video second
-    setPStep(1,'done'); setPStep('1b','active');
-    setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',28,
-      doProgSync ? `Extracting frames from recent video (from beat at ${pOffset2.toFixed(1)}s)…` : 'Extracting frames from recent video…');
-    let r2;
-    try { r2 = await extractFramesIsolatedFrom(S.prog2File, pOffset2); }
-    catch(e) { throw new Error('Could not extract frames from the recent video: ' + e.message); }
+    // Upload both videos sequentially
+    const { fileUri: uri1, fileName: fn1, mimeType: mt1 } = await uploadToGemini(S.prog1File, 1, 'earlier performance');
+    file1Name = fn1;
+    const { fileUri: uri2, fileName: fn2, mimeType: mt2 } = await uploadToGemini(S.prog2File, 2, 'recent performance');
+    file2Name = fn2;
 
-    setPStep('1b','done'); setPStep(2,'active');
-    setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',45,'Sending to AI Vision…');
+    // Send both URIs to server for comparison
+    setPStep(3, 'active');
+    setProc('prog-proc-bar','prog-proc-pct','prog-proc-label', 80, 'AI comparing both performances…');
+    const context1      = document.getElementById('prog-context-1')?.value?.trim() || 'Earlier performance';
+    const context2      = document.getElementById('prog-context-2')?.value?.trim() || 'Recent performance';
+    const variationName = document.getElementById('prog-variation')?.value?.trim() || '';
+    const ageGroup      = document.getElementById('prog-age-group')?.value || 'Junior';
+    const style         = document.getElementById('prog-style')?.value || 'Classical';
 
-    const { content, thumbs1: usedThumbs1, thumbs2: usedThumbs2 } = buildProgressContent(
-      r1.frames, r1.thumbs, r2.frames, r2.thumbs,
-      document.getElementById('prog-desc').value, r1.apiFrameCount,
-      doProgSync ? `Music beat sync applied: earlier video frames start at ${pOffset1.toFixed(1)}s, recent video frames start at ${pOffset2.toFixed(1)}s — both anchored to their first musical beat for like-for-like movement comparison.` : ''
-    );
-    const data = await claudeAPI({ model:MODEL, max_tokens:4000, messages:[{role:'user',content}] });
-    const result = parseJSON(data.content.find(b=>b.type==='text')?.text||'');
-    result._thumbs1 = usedThumbs1;
-    result._thumbs2 = usedThumbs2;
+    const compareResp = await fetch('/api/gemini-compare-uri', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileUri1: uri1, mimeType1: mt1, fileUri2: uri2, mimeType2: mt2, context1, context2, ageGroup, style, variationName })
+    });
+    if (!compareResp.ok) { const t = await compareResp.text(); throw new Error(`Server error ${compareResp.status}: ${t.slice(0,200)}`); }
+    const compareData = await compareResp.json();
+    if (compareData.error) throw new Error(compareData.error);
+    const result = compareData.result;
+    result._context1 = context1;
+    result._context2 = context2;
 
-    setPStep(2,'done'); setPStep(3,'active');
-    setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',90,'Generating verdict…');
-    await sleep(400);
-    setPStep(3,'done');
-    setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',100,'Done!');
+    setPStep(3, 'done');
+    setProc('prog-proc-bar','prog-proc-pct','prog-proc-label', 100, 'Done!');
     await sleep(300);
 
-    S.history.push({ id:Date.now(), type:'progress', pose:'Progress Check', score:null, thumb:usedThumbs1?.[0]||null, date:new Date().toLocaleDateString(), progResult:result });
-    saveHistory(); S.lastProgResult = result;
+    const overallRecent = Math.round(((result.recent?.techniqueScore||0) + (result.recent?.artistryScore||0)) / 2);
+    S.history.push({ id:Date.now(), type:'progress', pose:cap(variationName||'Progress Check'), score:overallRecent, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), progResult:result });
+    saveHistory();
+    S.lastProgResult = result;
     renderProgressResults(result);
     document.getElementById('prog-processing').style.display = 'none';
     document.getElementById('prog-results').style.display = 'block';
-    // Wire up lightbox for frame strips
-    const allProgFrames = [
-      ...(result._thumbs1||[]).map((t,i) => ({src:t, label:`Earlier — Frame A${i+1}`})),
-      ...(result._thumbs2||[]).map((t,i) => ({src:t, label:`Recent — Frame B${i+1}`})),
-    ];
-    makeFramesClickable('prog-frames-a', allProgFrames.slice(0, result._thumbs1?.length||0));
-    makeFramesClickable('prog-frames-b', allProgFrames.slice(result._thumbs1?.length||0));
     updateDashboard();
 
   } catch(err) {
     document.getElementById('prog-processing').style.display = 'none';
     document.getElementById('prog-upload').style.display = 'block';
     showError('prog-error', err.message);
-    ['ps1','ps1b','ps2','ps3'].forEach(s=>{const d=document.getElementById(s+'-dot');const st=document.getElementById(s+'-st');if(d)d.style.background='var(--border)';if(st)st.textContent='';});
+    ['1','2','3'].forEach(n => { const d=document.getElementById(`ps${n}-dot`); const st=document.getElementById(`ps${n}-st`); if(d)d.style.background='var(--border)'; if(st)st.textContent=''; });
+  } finally {
+    if (geminiKey) {
+      [file1Name, file2Name].forEach(fn => {
+        if (fn) fetch(`https://generativelanguage.googleapis.com/v1beta/${fn}?key=${geminiKey}`, { method: 'DELETE' }).catch(()=>{});
+      });
+    }
   }
 }
 
 function renderProgressResults(r) {
+  const earlier = r.earlier || {};
+  const recent  = r.recent  || {};
+
+  // Verdict banner
   const cfg = {
-    'Progressing':    { bg:'var(--green-light)',  color:'var(--green)',      icon:'↑', border:'var(--green)' },
-    'Maintaining':    { bg:'var(--navy-pale)',     color:'var(--navy)',       icon:'→', border:'var(--navy-muted)' },
-    'Needs Attention':{ bg:'var(--blush-light)',   color:'var(--blush-deep)', icon:'!', border:'var(--blush)' },
+    'improved':   { bg:'var(--green-light)',  color:'var(--green)',      icon:'↑', border:'var(--green)',      label:'Improved' },
+    'maintained': { bg:'var(--navy-pale)',     color:'var(--navy)',       icon:'→', border:'var(--navy-muted)', label:'Maintained' },
+    'regressed':  { bg:'var(--blush-light)',   color:'var(--blush-deep)', icon:'↓', border:'var(--blush)',      label:'Needs Attention' },
   };
-  const c = cfg[r.verdict] || cfg['Maintaining'];
-  const vb = document.getElementById('verdict-banner');
+  const c = cfg[r.verdict] || cfg['maintained'];
+  const vb = document.getElementById('prog-verdict-banner');
   vb.style.background = c.bg; vb.style.border = `.5px solid ${c.border}`;
-  document.getElementById('verdict-icon').textContent = c.icon;
-  document.getElementById('verdict-label').textContent = r.verdict;
-  document.getElementById('verdict-label').style.color = c.color;
-  document.getElementById('verdict-rationale').textContent = r.rationale || '';
-  document.getElementById('verdict-rationale').style.color = c.color;
+  document.getElementById('prog-verdict-icon').textContent = c.icon;
+  document.getElementById('prog-verdict-icon').style.color = c.color;
+  document.getElementById('prog-verdict-label').textContent = c.label;
+  document.getElementById('prog-verdict-label').style.color = c.color;
+  document.getElementById('prog-verdict-rationale').textContent = r.rationale || '';
+  document.getElementById('prog-verdict-rationale').style.color = c.color;
 
-  // Dimension score delta grid
+  // Score comparison strip
+  const overallE = Math.round(((earlier.techniqueScore||0) + (earlier.artistryScore||0)) / 2);
+  const overallR = Math.round(((recent.techniqueScore||0)  + (recent.artistryScore||0))  / 2);
+  const scoreDelta = overallR - overallE;
+  const ctx1 = r._context1 || document.getElementById('prog-context-1')?.value?.trim() || 'Earlier';
+  const ctx2 = r._context2 || document.getElementById('prog-context-2')?.value?.trim() || 'Recent';
+  document.getElementById('prog-score-strip').innerHTML = `<div class="panel"><div class="panel-body" style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;text-align:center">
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">${ctx1}</div>
+      <div style="font-size:40px;font-weight:700;color:var(--navy);font-family:var(--font-serif)">${overallE||'—'}</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:4px">${earlier.techniqueScore||'—'}T · ${earlier.artistryScore||'—'}A</div>
+    </div>
+    <div style="font-size:28px;font-weight:700;color:${scoreDelta>0?'var(--green)':scoreDelta<0?'var(--blush-dark)':'var(--ink-soft)'}">${scoreDelta>0?'+':''}${scoreDelta||0}</div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">${ctx2}</div>
+      <div style="font-size:40px;font-weight:700;color:${c.color};font-family:var(--font-serif)">${overallR||'—'}</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:4px">${recent.techniqueScore||'—'}T · ${recent.artistryScore||'—'}A</div>
+    </div>
+  </div></div>`;
+
+  // 13-dimension delta grid
+  const ag = document.getElementById('prog-age-group')?.value || 'Junior';
   const dims = [
-    {n:'Alignment', b:r.alignment?.before, a:r.alignment?.after},
-    {n:'Extension', b:r.extension?.before, a:r.extension?.after},
-    {n:'Turnout',   b:r.turnout?.before,   a:r.turnout?.after},
-    {n:'Balance',   b:r.balance?.before,   a:r.balance?.after},
+    {key:'alignment',  label:'Alignment',   cat:'technique'},
+    {key:'turnout',    label:'Turnout',      cat:'technique'},
+    {key:'execution',  label:'Execution',    cat:'technique'},
+    {key:'pointework', label: ag==='Pre-competitive'?'Demi-pointe':'Pointework', cat:'technique'},
+    {key:'musicality', label:'Musicality',   cat:'technique'},
+    {key:'control',    label:'Control',      cat:'technique'},
+    {key:'line',       label:'Line',         cat:'artistry'},
+    {key:'epaulement', label:'Épaulement',   cat:'artistry'},
+    {key:'portDeBras', label:'Port de Bras', cat:'artistry'},
+    {key:'style',      label:'Style',        cat:'artistry'},
+    {key:'dynamics',   label:'Dynamics',     cat:'artistry'},
+    {key:'presence',   label:'Presence',     cat:'artistry'},
+    {key:'expression', label:'Expression',   cat:'artistry'},
   ];
-  document.getElementById('delta-grid').innerHTML = dims.map(d => {
-    const delta = (d.a||0) - (d.b||0), pos = delta >= 0;
-    return `<div class="delta-card">
-      <div><div class="delta-name">${d.n}</div><div class="delta-range">${d.b} → ${d.a}</div></div>
-      <div class="delta-badge" style="background:${pos?'var(--green-light)':'var(--blush-light)'};color:${pos?'var(--green)':'var(--blush-deep)'}">${pos?'↑ +':'↓ '}${delta}</div>
+  const dimRow = (d) => {
+    const b = earlier[d.cat]?.[d.key] || 0, a = recent[d.cat]?.[d.key] || 0, delta = a - b;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--ink-mid)">${d.label}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--ink-soft)">${b} → ${a}</span>
+        <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:${delta>0?'var(--green-light)':delta<0?'var(--blush-light)':'var(--navy-pale)'};color:${delta>0?'var(--green)':delta<0?'var(--blush-deep)':'var(--ink-soft)'}">${delta>0?'+':''}${delta}</span>
+      </div>
     </div>`;
-  }).join('');
+  };
+  document.getElementById('prog-delta-grid').innerHTML = `<div class="panel"><div class="panel-body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+    <div><div class="dim-section-label" style="margin-bottom:12px">TECHNIQUE</div>${dims.filter(d=>d.cat==='technique').map(dimRow).join('')}</div>
+    <div><div class="dim-section-label" style="margin-bottom:12px">ARTISTRY</div>${dims.filter(d=>d.cat==='artistry').map(dimRow).join('')}</div>
+  </div></div></div>`;
 
-  // Frame strips — show A (earlier) and B (recent) thumbnails side by side
-  const t1 = r._thumbs1 || [], t2 = r._thumbs2 || [];
-  if (t1.length || t2.length) {
-    document.getElementById('prog-frames-a').innerHTML = t1.map((t,i) =>
-      `<div class="frame-item" style="border-color:var(--ink-soft)"><img src="${t}" alt="A${i+1}"/><div class="frame-num" style="background:rgba(0,0,0,.55);color:#fff;padding:1px 5px;border-radius:4px">A${i+1}</div></div>`).join('');
-    document.getElementById('prog-frames-b').innerHTML = t2.map((t,i) =>
-      `<div class="frame-item" style="border-color:var(--green)"><img src="${t}" alt="B${i+1}"/><div class="frame-num" style="background:var(--green);color:#fff;padding:1px 5px;border-radius:4px">B${i+1}</div></div>`).join('');
-    document.getElementById('prog-frames-wrap').style.display = 'block';
-  } else {
-    document.getElementById('prog-frames-wrap').style.display = 'none';
-  }
+  // What improved / maintained / regressed
+  const renderList = (items, color) => items.map(item => `<div class="imp-item" style="border-left:3px solid ${color}">
+    <div style="font-size:13px;font-weight:600;color:${color};margin-bottom:4px">${item.area||''}</div>
+    <div style="font-size:12px;color:var(--ink-mid);line-height:1.6">${item.observation||''}</div>
+  </div>`).join('');
 
-  // Rich "What Changed" cards
-  const changes = r.changes || [];
-  const wrap = document.getElementById('prog-changes-wrap');
-  const list = document.getElementById('prog-changes-list');
+  const improved   = r.improved   || [];
+  const maintained = r.maintained || [];
+  const regressed  = r.regressed  || [];
 
-  if (changes.length > 0) {
-    const dirCfg = {
-      'improved':   { color:'var(--green)',      bg:'var(--green-light)',  icon:'↑', label:'Improved',   borderColor:'var(--green)' },
-      'regressed':  { color:'var(--blush-dark)', bg:'var(--blush-light)',  icon:'↓', label:'Regressed',  borderColor:'var(--blush-dark)' },
-      'maintained': { color:'var(--navy)',        bg:'var(--navy-pale)',    icon:'→', label:'Maintained', borderColor:'var(--navy-muted)' },
-    };
+  const iwrap = document.getElementById('prog-improved-wrap');
+  const mwrap = document.getElementById('prog-maintained-wrap');
+  const rwrap = document.getElementById('prog-regressed-wrap');
+  if (improved.length)   { document.getElementById('prog-improved-list').innerHTML   = renderList(improved,   'var(--green)');      iwrap.style.display='block'; } else iwrap.style.display='none';
+  if (maintained.length) { document.getElementById('prog-maintained-list').innerHTML = renderList(maintained, 'var(--navy)');       mwrap.style.display='block'; } else mwrap.style.display='none';
+  if (regressed.length)  { document.getElementById('prog-regressed-list').innerHTML  = renderList(regressed,  'var(--blush-dark)'); rwrap.style.display='block'; } else rwrap.style.display='none';
 
-    list.innerHTML = changes.map(ch => {
-      const d = dirCfg[ch.direction] || dirCfg['maintained'];
-      const isRich = !!(ch.before || ch.after || ch.coachNote || ch.nextStep);
-
-      return `<div class="imp-item" style="border-left:3px solid ${d.borderColor}">
-        <div class="imp-header">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:22px;height:22px;border-radius:50%;background:${d.bg};color:${d.color};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid ${d.borderColor}">${d.icon}</div>
-            <div>
-              <div class="imp-area">${ch.area || ''}</div>
-              ${ch.bodyPart ? `<div style="font-size:10px;color:var(--ink-soft);margin-top:1px;font-style:italic">${ch.bodyPart}</div>` : ''}
-            </div>
-          </div>
-          <span class="badge" style="background:${d.bg};color:${d.color};border:0.5px solid ${d.borderColor};flex-shrink:0">${d.label}</span>
-        </div>
-        ${isRich ? `<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-          ${ch.before ? `<div style="display:flex;gap:8px;align-items:flex-start">
-            <div style="width:6px;height:6px;border-radius:50%;background:var(--ink-soft);margin-top:5px;flex-shrink:0"></div>
-            <div><span style="font-size:9px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em">Before (Frame A) </span><span style="font-size:11px;color:var(--ink-mid);line-height:1.6">${ch.before}</span></div>
-          </div>` : ''}
-          ${ch.after ? `<div style="display:flex;gap:8px;align-items:flex-start">
-            <div style="width:6px;height:6px;border-radius:50%;background:${d.color};margin-top:5px;flex-shrink:0"></div>
-            <div><span style="font-size:9px;font-weight:600;color:${d.color};text-transform:uppercase;letter-spacing:.06em">Now (Frame B) </span><span style="font-size:11px;color:var(--ink-mid);line-height:1.6">${ch.after}</span></div>
-          </div>` : ''}
-          ${ch.coachNote ? `<div style="display:flex;gap:8px;align-items:flex-start;background:var(--navy-pale);border-radius:8px;padding:8px 10px">
-            <div style="font-size:13px;flex-shrink:0">💬</div>
-            <div><span style="font-size:9px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em">Coach </span><span style="font-size:11px;color:var(--navy);line-height:1.6">${ch.coachNote}</span></div>
-          </div>` : ''}
-          ${ch.nextStep ? `<div style="display:flex;gap:8px;align-items:flex-start;background:var(--gold-light);border-radius:8px;padding:8px 10px">
-            <div style="font-size:13px;flex-shrink:0">🔁</div>
-            <div><span style="font-size:9px;font-weight:600;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.06em">Next Step </span><span style="font-size:11px;color:#6B4A10;line-height:1.6">${ch.nextStep}</span></div>
-          </div>` : ''}
-        </div>` : ''}
-      </div>`;
-    }).join('');
-
-    wrap.style.display = 'block';
-  } else {
-    wrap.style.display = 'none';
-  }
+  // Focus for next training cycle
+  const focusAreas = r.focusAreas || [];
+  const fwrap = document.getElementById('prog-focus-wrap');
+  if (focusAreas.length) {
+    document.getElementById('prog-focus-list').innerHTML = focusAreas.map((f, i) =>
+      `<div style="display:flex;gap:12px;align-items:flex-start;${i>0?'margin-top:12px;padding-top:12px;border-top:.5px solid var(--border)':''}">
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--navy-pale);color:var(--navy);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
+        <div style="font-size:13px;color:var(--ink-mid);line-height:1.6">${f}</div>
+      </div>`).join('');
+    fwrap.style.display = 'block';
+  } else fwrap.style.display = 'none';
 }
 
 function resetProgress() {
   S.prog1File=null; S.prog2File=null;
   ['prog-slot-1','prog-slot-2'].forEach(id=>document.getElementById(id)?.classList.remove('has-file'));
-  document.getElementById('prog1-label').textContent='Earlier Performance';
-  document.getElementById('prog2-label').textContent='Recent Performance';
+  document.getElementById('prog1-label').textContent='Click or drag to upload';
+  document.getElementById('prog2-label').textContent='Click or drag to upload';
   document.getElementById('prog-submit-btn').disabled=true;
   document.getElementById('prog-error').innerHTML='';
   document.getElementById('prog-upload').style.display='block';
   document.getElementById('prog-processing').style.display='none';
   document.getElementById('prog-results').style.display='none';
-  ['ps1','ps1b','ps2','ps3'].forEach(s=>{const d=document.getElementById(s+'-dot');const st=document.getElementById(s+'-st');if(d)d.style.background='var(--border)';if(st)st.textContent='';});
+  ['1','2','3'].forEach(n=>{const d=document.getElementById(`ps${n}-dot`);const st=document.getElementById(`ps${n}-st`);if(d)d.style.background='var(--border)';if(st)st.textContent='';});
   setProc('prog-proc-bar','prog-proc-pct','prog-proc-label',0,'');
 }
 
