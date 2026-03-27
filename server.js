@@ -214,7 +214,7 @@ Watch both videos in full. Score EACH performance independently on all 13 YAGP d
 TECHNIQUE: alignment, turnout, execution, ${pointeworkLabel}, musicality, control
 ARTISTRY: line, epaulement, portDeBras, style, dynamics, presence, expression
 
-Then compare: identify what specifically improved, what stayed consistent, and what regressed between the two performances. Reference ballet terminology and specific timestamps where possible.
+Then compare: identify what specifically improved, what stayed consistent, and what regressed between the two performances. Use ballet terminology. For EVERY observation, note the exact timestamp (m:ss) in the earlier video AND the exact timestamp in the recent video where the difference is most visible.
 
 Return ONLY valid JSON (no markdown):
 {
@@ -222,10 +222,10 @@ Return ONLY valid JSON (no markdown):
   "recent":{"techniqueScore":<N>,"artistryScore":<N>,"technique":{"alignment":<N>,"turnout":<N>,"execution":<N>,"pointework":<N>,"musicality":<N>,"control":<N>},"artistry":{"line":<N>,"epaulement":<N>,"portDeBras":<N>,"style":<N>,"dynamics":<N>,"presence":<N>,"expression":<N>}},
   "verdict":"improved"|"maintained"|"regressed",
   "rationale":"<one sentence overall summary>",
-  "improved":[{"area":"<dimension or skill>","observation":"<specific detail with timestamps>"}],
-  "maintained":[{"area":"<...>","observation":"<...>"}],
-  "regressed":[{"area":"<...>","observation":"<...>"}],
-  "focusAreas":["<specific coaching priority 1>","<priority 2>","<priority 3>"]
+  "improved":[{"area":"<dimension or skill>","observation":"<specific observation — do NOT embed timestamps in the text>","timeEarlier":"<m:ss>","timeRecent":"<m:ss>"}],
+  "maintained":[{"area":"<...>","observation":"<...>","timeEarlier":"<m:ss>","timeRecent":"<m:ss>"}],
+  "regressed":[{"area":"<...>","observation":"<...>","timeEarlier":"<m:ss>","timeRecent":"<m:ss>"}],
+  "focusAreas":["<specific coaching priority 1 with timestamp if relevant, e.g. focus on the arabesque at 0:45>","<priority 2>","<priority 3>"]
 }`;
 
       const genAI = new GoogleGenerativeAI(GEMINI_KEY);

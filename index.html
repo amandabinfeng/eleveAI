@@ -1431,6 +1431,18 @@ function seekReportVideo(timeStr) {
   vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function seekProgVideo(videoId, timeStr) {
+  const vid = document.getElementById(videoId);
+  if (!vid || !timeStr) return;
+  const parts = timeStr.trim().split(':');
+  const secs = parts.length === 2
+    ? parseInt(parts[0]) * 60 + parseFloat(parts[1])
+    : parseFloat(timeStr);
+  vid.currentTime = secs;
+  vid.play();
+  vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function exportPDF() {
   const pose = document.getElementById('report-badges')?.textContent?.trim() || 'Ballet Analysis';
   const orig = document.title;
@@ -1661,10 +1673,19 @@ function renderProgressResults(r) {
   </div></div></div>`;
 
   // What improved / maintained / regressed
-  const renderList = (items, color) => items.map(item => `<div class="imp-item" style="border-left:3px solid ${color}">
-    <div style="font-size:13px;font-weight:600;color:${color};margin-bottom:4px">${item.area||''}</div>
-    <div style="font-size:12px;color:var(--ink-mid);line-height:1.6">${item.observation||''}</div>
-  </div>`).join('');
+  const hasVid1 = !!S.prog1VideoURL, hasVid2 = !!S.prog2VideoURL;
+  const renderList = (items, color) => items.map(item => {
+    const ts1 = item.timeEarlier, ts2 = item.timeRecent;
+    const chips = [
+      ts1 ? `<span class="chip-meta" onclick="seekProgVideo('prog-video-1','${ts1}')" style="cursor:pointer;margin-right:6px">${ts1} Earlier ▶</span>` : '',
+      ts2 ? `<span class="chip-meta" onclick="seekProgVideo('prog-video-2','${ts2}')" style="cursor:pointer">${ts2} Recent ▶</span>` : '',
+    ].filter(Boolean).join('');
+    return `<div class="imp-item" style="border-left:3px solid ${color}">
+      <div style="font-size:13px;font-weight:600;color:${color};margin-bottom:4px">${item.area||''}</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.6;margin-bottom:${chips?'6px':'0'}">${item.observation||''}</div>
+      ${chips ? `<div style="margin-top:2px">${chips}</div>` : ''}
+    </div>`;
+  }).join('');
 
   const improved   = r.improved   || [];
   const maintained = r.maintained || [];
