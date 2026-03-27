@@ -28,6 +28,7 @@ const PORT         = 3001;
 const API_KEY      = process.env.OPENAI_API_KEY;
 const MODEL        = process.env.OPENAI_MODEL || 'gpt-4o';
 const GEMINI_KEY   = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
 if (!API_KEY) {
   console.warn('\n⚠️   OPENAI_API_KEY not set — server will start but analyses will fail.');
@@ -138,7 +139,7 @@ Return ONLY valid JSON (no markdown, no extra text):
 2-3 positives, 2-3 improvements.`;
 
       const genAI  = new GoogleGenerativeAI(GEMINI_KEY);
-      const model  = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 4000 } });
+      const model  = genAI.getGenerativeModel({ model: GEMINI_MODEL, generationConfig: { maxOutputTokens: 4000 } });
       const result = await model.generateContent([{ fileData: { fileUri, mimeType } }, { text: prompt }]);
       const text   = result.response.text();
       console.log('✓ Gemini analysis done');
@@ -244,7 +245,7 @@ Return ONLY valid JSON (no markdown, no extra text):
 {"techniqueScore":<0-100>,"artistryScore":<0-100>,"overallScore":<average rounded>,"technique":{"alignment":<0-100>,"turnout":<0-100>,"execution":<0-100>,"pointework":<0-100>,"musicality":<0-100>,"control":<0-100>},"artistry":{"line":<0-100>,"epaulement":<0-100>,"portDeBras":<0-100>,"style":<0-100>,"dynamics":<0-100>,"presence":<0-100>,"expression":<0-100>},"pose":"<variation name>","positives":[{"text":"<observation>","timeStart":"<e.g. 0:10>","timeEnd":"<e.g. 0:20>"}],"improvements":[{"text":"<actionable correction>","timeStart":"<e.g. 0:15>","timeEnd":"<e.g. 0:25>"}],"coachNote":"<2-3 sentences>"}
 2-3 positives, 2-3 improvements.`;
 
-      const model   = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 4000 } });
+      const model   = genAI.getGenerativeModel({ model: GEMINI_MODEL, generationConfig: { maxOutputTokens: 4000 } });
       const result  = await model.generateContent([{ fileData: { fileUri: file.uri, mimeType } }, { text: prompt }]);
       const text    = result.response.text();
       console.log('✓ Gemini analysis done');
