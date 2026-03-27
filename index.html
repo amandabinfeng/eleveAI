@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -287,10 +287,6 @@ input.field:focus{border-color:var(--navy)}
         <span>Solo Analysis</span>
         <span class="nav-badge">Real AI</span>
       </div>
-      <div class="nav-item" data-view="benchmark" onclick="showView('benchmark',this)">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="2"/><rect x="13" y="3" width="8" height="18" rx="2"/></svg>
-        <span>Benchmark</span>
-      </div>
       <div class="nav-item" data-view="progress" onclick="showView('progress',this)">
         <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>Progress</span>
@@ -421,6 +417,10 @@ input.field:focus{border-color:var(--navy)}
                       <div class="style-chip" onclick="setStyle('Contemporary',this)">Contemporary</div>
                       <div class="style-chip" onclick="setStyle('Neoclassical',this)">Neoclassical</div>
                     </div>
+                  </div>
+                  <div style="margin-bottom:12px">
+                    <label class="field-label">Variation name</label>
+                    <input type="text" class="field" id="analysis-variation" placeholder="e.g. Talisman, La Esmeralda, Kitri" style="margin-bottom:0"/>
                   </div>
                   <div>
                     <label class="field-label">Add context for better feedback</label>
@@ -553,98 +553,6 @@ input.field:focus{border-color:var(--navy)}
         </div>
       </div>
 
-      <!-- ── Benchmark ── -->
-      <div class="view" id="view-benchmark">
-        <div class="section-hdr"><div class="section-title">Benchmark Comparison</div><div class="section-sub">Your technique vs a professional reference</div></div>
-        <div id="bench-upload">
-          <div class="feature-layout">
-            <div>
-              <div id="bench-error"></div>
-              <div class="panel" style="margin-bottom:16px">
-                <div class="panel-head"><div class="panel-title">Upload two videos</div></div>
-                <div class="panel-body">
-                  <div class="dual-upload">
-                    <div class="dual-slot" id="bench-slot-1" ondragover="onDrag(event,'bench-slot-1',true)" ondragleave="onDrag(event,'bench-slot-1',false)" ondrop="onDrop(event,'bench1')">
-                      <input type="file" accept="video/*" onchange="onFileInput(event,'bench1')"/>
-                      <div style="font-size:24px;margin-bottom:8px">🎭</div>
-                      <div class="dual-slot-label" id="bench1-label">My Performance</div>
-                      <div class="dual-slot-hint">Your video</div>
-                    </div>
-                    <div class="dual-slot" id="bench-slot-2" ondragover="onDrag(event,'bench-slot-2',true)" ondragleave="onDrag(event,'bench-slot-2',false)" ondrop="onDrop(event,'bench2')">
-                      <input type="file" accept="video/*" onchange="onFileInput(event,'bench2')"/>
-                      <div style="font-size:24px;margin-bottom:8px">⭐</div>
-                      <div class="dual-slot-label" id="bench2-label">Professional Reference</div>
-                      <div class="dual-slot-hint">Benchmark video</div>
-                    </div>
-                  </div>
-                  <div><label class="field-label">Context</label><textarea class="field" rows="2" id="bench-desc" placeholder="e.g. My arabesque vs Margot Fonteyn reference. Focus on back leg height and arm line."></textarea></div>
-                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--gold-light);border-radius:10px;border:.5px solid var(--gold)">
-                    <input type="checkbox" id="bench-sync-audio" style="width:15px;height:15px;accent-color:var(--navy);cursor:pointer;flex-shrink:0"/>
-                    <div>
-                      <label for="bench-sync-audio" style="font-size:11px;font-weight:500;color:var(--gold-dark);cursor:pointer">Auto-sync videos by music beat</label>
-                      <div style="font-size:10px;color:#6B4A10;margin-top:1px">Detects the first strong beat in each video and aligns frames to the same musical moment — improves comparison accuracy</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <button class="btn btn-primary btn-full" id="bench-submit-btn" onclick="startBenchmark()" disabled>Compare Performances</button>
-            </div>
-            <div>
-              <div class="banner banner-gold"><div class="banner-title">Pro tip</div><p>Choose a benchmark video showing the same movement phrase and camera angle for the most accurate comparison.</p></div>
-              <div class="banner banner-navy"><div class="banner-title">What you'll get</div><p>· Side-by-side technique scores<br>· Ranked list of improvement areas<br>· Specific measurements (e.g. arm angle)<br>· Actionable coaching suggestions per gap</p></div>
-            </div>
-          </div>
-        </div>
-        <div id="bench-processing" style="display:none">
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title">Comparing performances…</div></div>
-            <div class="panel-body">
-              <div class="progress-wrap">
-                <div class="progress-meta"><span id="bench-proc-label">Initialising…</span><span id="bench-proc-pct" style="font-weight:500;color:var(--navy)">0%</span></div>
-                <div class="progress-track"><div class="progress-fill" id="bench-proc-bar" style="width:0%"></div></div>
-              </div>
-              <div class="steps-list">
-                <div class="step-item"><div class="step-dot" id="bs1-dot" style="background:var(--border)"></div><div class="step-label">Extracting frames from your video</div><div class="step-status" id="bs1-st"></div></div>
-                <div class="step-item"><div class="step-dot" id="bs1b-dot" style="background:var(--border)"></div><div class="step-label">Extracting frames from benchmark video</div><div class="step-status" id="bs1b-st"></div></div>
-                <div class="step-item"><div class="step-dot" id="bs2-dot" style="background:var(--border)"></div><div class="step-label">Sending to AI Vision for analysis</div><div class="step-status" id="bs2-st"></div></div>
-                <div class="step-item"><div class="step-dot" id="bs3-dot" style="background:var(--border)"></div><div class="step-label">Computing technique gaps</div><div class="step-status" id="bs3-st"></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="bench-results" style="display:none">
-          <div style="display:flex;gap:10px;margin-bottom:20px"><button class="btn btn-ghost" onclick="resetBenchmark()">← New Comparison</button></div>
-          <!-- Frame strips -->
-          <div id="bench-frames-wrap" style="display:none;margin-bottom:20px">
-            <div style="font-family:var(--font-serif);font-size:20px;color:var(--navy);font-style:italic;margin-bottom:12px">Analysed Frames</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-              <div>
-                <div style="font-size:10px;font-weight:600;color:var(--navy-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">You (A)</div>
-                <div class="frames-grid" id="bench-frames-a" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))"></div>
-              </div>
-              <div>
-                <div style="font-size:10px;font-weight:600;color:var(--blush-dark);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Pro (B)</div>
-                <div class="frames-grid" id="bench-frames-b" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))"></div>
-              </div>
-            </div>
-          </div>
-          <div class="feature-layout">
-            <div>
-              <div class="panel" style="margin-bottom:16px">
-                <div class="panel-head"><div class="panel-title">Score Comparison</div></div>
-                <div class="panel-body">
-                  <div class="cmp-scores">
-                    <div class="cmp-card" style="background:var(--navy)"><div class="cmp-label" style="color:var(--navy-muted)">You</div><div class="cmp-score" id="bench-user-score">—</div><div class="cmp-name" style="color:rgba(255,255,255,.5)">Your performance</div></div>
-                    <div class="cmp-card" style="background:var(--blush-deep)"><div class="cmp-label" style="color:var(--blush-light)">Pro</div><div class="cmp-score" id="bench-pro-score">—</div><div class="cmp-name" style="color:rgba(255,255,255,.5)">Benchmark</div></div>
-                  </div>
-                </div>
-              </div>
-              <div class="panel"><div class="panel-head"><div class="panel-title">Improvement Areas</div></div><div class="panel-body"><div class="imp-list" id="bench-imp-list"></div></div></div>
-            </div>
-            <div><div class="panel"><div class="panel-head"><div class="panel-title">Strengths</div></div><div class="panel-body"><div class="imp-list" id="bench-str-list"></div></div></div></div>
-          </div>
-        </div>
-      </div>
 
       <!-- ── Progress ── -->
       <div class="view" id="view-progress">
@@ -807,8 +715,7 @@ const S = {
 // ── Navigation ─────────────────────────────────────────────────────────────
 const viewTitles = {
   dashboard: ['Dashboard','Welcome back, Sofia'],
-  analysis:  ['Solo Analysis','Upload · Extract frames · AI analysis'],
-  benchmark: ['Benchmark','Compare your technique to a professional'],
+  analysis:  ['Solo Analysis','Real video → AI Vision → technique report'],
   progress:  ['Progress','Track your improvement over time'],
   profile:   ['Profile','Your history and settings'],
 };
@@ -853,28 +760,6 @@ async function checkConnection(showAlert) {
   text.textContent = 'Start proxy or add API key';
   bar.textContent = '● Proxy offline'; bar.style.color = 'var(--blush-dark)';
   if (showAlert) alert('Proxy server not detected.\n\nStart it with:\n  npm start\n\nOr add your API key in Profile → Settings.');
-}
-
-// ── API ────────────────────────────────────────────────────────────────────
-function getEndpoint() {
-  const h = location.hostname;
-  if (h.endsWith('.app.github.dev') || h.endsWith('.github.dev')) return { url: '/api/claude', proxied: true };
-  if (h === 'localhost' || h === '127.0.0.1') return { url: '/api/claude', proxied: true };
-  return { url: 'https://api.openai.com/v1/chat/completions', proxied: false };
-}
-async function claudeAPI(body) {
-  const { url, proxied } = getEndpoint();
-  const headers = { 'Content-Type': 'application/json' };
-  if (!proxied && window._OPENAI_KEY) headers['Authorization'] = 'Bearer ' + window._OPENAI_KEY;
-  const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-  if (!resp.ok) {
-    const e = await resp.json().catch(() => ({}));
-    if (resp.status === 401) throw new Error('API key invalid or missing. Add it in Profile → Settings, or start the proxy server.');
-    throw new Error(e.error?.message || `API error ${resp.status}`);
-  }
-  const raw = await resp.json();
-  const text = raw.choices?.[0]?.message?.content || '';
-  return { content: [{ type: 'text', text }] };
 }
 
 // ── MediaPipe ──────────────────────────────────────────────────────────────
@@ -1102,55 +987,6 @@ Return ONLY valid JSON (no markdown, no extra text):
   return { content, thumbs: sel.map(f => f.thumb) };
 }
 
-function buildBenchmarkContent(frames1, thumbs1, frames2, thumbs2, desc, apiFrameCount, syncNote) {
-  const n = Math.min(6, Math.ceil((apiFrameCount||8) * 0.75)); // more frames per video
-  const s1 = selectFrames(frames1, thumbs1, n), s2 = selectFrames(frames2, thumbs2, n);
-  const content = [{ type:'text', text:
-`You are a senior ballet coach and adjudicator with 20+ years of professional training experience.
-You are comparing a dancer's performance (frames A) against a professional benchmark (frames B).
-${desc ? 'Context from dancer: ' + desc : ''}
-${syncNote ? syncNote : ''}
-
-YOUR JOB: Identify the 5 most impactful technical differences between the two performances.
-
-STRICT RULES — failure to follow these means your response is useless:
-1. Every improvement must name a SPECIFIC body part (e.g. "working arm", "supporting heel", "back leg", "right hip", "chin", "standing knee") — NEVER say "technical precision" or "expression quality" or any vague category.
-2. Every observation must describe what you LITERALLY SEE in the frames — reference frame letters (A1, A2, B1 etc.) when possible.
-3. Use specific ballet vocabulary: port de bras, arabesque line, demi-plié, relevé, épaulement, en dehors, passé, retiré, attitude, etc.
-4. For each gap, state: what the DANCER does (Frame A), what the PRO does (Frame B), and the precise correction.
-5. For the drill, give ONE concrete exercise the dancer can do TODAY to close this specific gap.
-6. BANNED PHRASES — do not use any of these: "technical precision", "expression", "performance quality", "engagement", "overall technique", "general alignment", "artistic quality", "stage presence".
-
-Return ONLY valid JSON — no markdown, no extra text:
-{
-  "userScore": <45-88>,
-  "proScore": <88-98>,
-  "improvements": [
-    {
-      "bodyPart": "<specific body part e.g. 'working arm' / 'supporting heel' / 'back leg' / 'chin and gaze'>",
-      "area": "<short 2-4 word ballet label e.g. 'Arabesque arm line' / 'Heel drop on landing' / 'Turnout at hip'>",
-      "gap": <number 3-25>,
-      "whatYouDo": "<1 sentence: what the dancer does in frames A — be specific, cite frame if possible>",
-      "whatProDoes": "<1 sentence: what the professional does in frames B — be specific>",
-      "correction": "<1 sentence: the precise technical fix, using ballet terminology>",
-      "drill": "<1 sentence: a single concrete exercise to practise this correction>"
-    }
-  ],
-  "strengths": [
-    {
-      "area": "<short specific label>",
-      "bodyPart": "<specific body part>",
-      "note": "<1 sentence: what the dancer does well — be specific, compare to benchmark>"
-    }
-  ]
-}
-Exactly 5 improvements sorted by gap descending. 2-3 strengths. Be brutally specific — vague feedback is harmful to a dancer's development.` }];
-  content.push({type:'text',text:'--- DANCER frames (A) — analyze carefully:'});
-  s1.forEach((f,i) => { content.push({type:'text',text:`A${i+1}:`}); content.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+f.data,detail:'high'}}); });
-  content.push({type:'text',text:'--- PROFESSIONAL BENCHMARK frames (B) — analyze carefully:'});
-  s2.forEach((f,i) => { content.push({type:'text',text:`B${i+1}:`}); content.push({type:'image_url',image_url:{url:'data:image/jpeg;base64,'+f.data,detail:'high'}}); });
-  return { content, thumbs1: s1.map(f=>f.thumb), thumbs2: s2.map(f=>f.thumb) };
-}
 
 function buildProgressContent(frames1, thumbs1, frames2, thumbs2, desc, apiFrameCount, syncNote) {
   const n = Math.min(6, Math.ceil((apiFrameCount||8) * 0.75)); // more frames per video
@@ -1226,16 +1062,6 @@ function handleFile(file, slot) {
     document.getElementById('video-preview-wrap').style.display = 'block';
     document.getElementById('video-preview').src = S.analysisVideoURL;
     document.getElementById('analysis-submit-btn').disabled = false;
-  } else if (slot === 'bench1') {
-    S.bench1File = file;
-    document.getElementById('bench-slot-1').classList.add('has-file');
-    document.getElementById('bench1-label').textContent = '✓ ' + file.name.slice(0,24);
-    if (S.bench1File && S.bench2File) document.getElementById('bench-submit-btn').disabled = false;
-  } else if (slot === 'bench2') {
-    S.bench2File = file;
-    document.getElementById('bench-slot-2').classList.add('has-file');
-    document.getElementById('bench2-label').textContent = '✓ ' + file.name.slice(0,24);
-    if (S.bench1File && S.bench2File) document.getElementById('bench-submit-btn').disabled = false;
   } else if (slot === 'prog1') {
     S.prog1File = file;
     document.getElementById('prog-slot-1').classList.add('has-file');
@@ -1255,12 +1081,6 @@ function setEngine(e, el) { S.engine = e; document.querySelectorAll('#engine-row
 // ── Step/progress helpers ──────────────────────────────────────────────────
 function setStep(n, state) {
   const dot = document.getElementById(`s${n}-dot`), st = document.getElementById(`s${n}-st`);
-  if (!dot) return;
-  dot.style.background = state==='done'?'var(--green)':state==='active'?'var(--blush-dark)':'var(--border)';
-  if (st) { st.textContent = state==='done'?'✓':state==='active'?'···':''; st.style.color = state==='done'?'var(--green)':'var(--gold)'; }
-}
-function setBStep(n, state) {
-  const dot = document.getElementById(`bs${n}-dot`), st = document.getElementById(`bs${n}-st`);
   if (!dot) return;
   dot.style.background = state==='done'?'var(--green)':state==='active'?'var(--blush-dark)':'var(--border)';
   if (st) { st.textContent = state==='done'?'✓':state==='active'?'···':''; st.style.color = state==='done'?'var(--green)':'var(--gold)'; }
@@ -1511,8 +1331,9 @@ function toggleKeypoints() {
 }
 
 function renderAnalysisReport(r, thumbs, usedFallback) {
+  const varName = document.getElementById('analysis-variation')?.value?.trim() || r.pose || 'Performance';
   document.getElementById('report-badges').innerHTML =
-    `<span class="badge" style="background:var(--blush-light);color:var(--blush-deep)">${cap(r.pose||'Performance')}</span>
+    `<span class="badge" style="background:var(--blush-light);color:var(--blush-deep)">${cap(varName)}</span>
      <span class="badge" style="background:var(--navy-pale);color:var(--navy-mid)">${S.style}</span>
      <span class="badge" style="background:var(--green-light);color:var(--green)">● ${S.ageGroup}</span>`;
 
@@ -1613,187 +1434,13 @@ function resetAnalysis() {
   document.getElementById('analysis-submit-btn').disabled = true;
   document.getElementById('analysis-error').innerHTML = '';
   document.getElementById('analysis-desc').value = '';
+  const varInput = document.getElementById('analysis-variation');
+  if (varInput) varInput.value = '';
   document.getElementById('analysis-upload').style.display = 'block';
   document.getElementById('analysis-processing').style.display = 'none';
   document.getElementById('analysis-report').style.display = 'none';
   ['s1','s1b','s2','s3','s4'].forEach(s=>{const d=document.getElementById(s+'-dot');const st=document.getElementById(s+'-st');if(d)d.style.background='var(--border)';if(st)st.textContent='';});
   setProc('proc-bar','proc-pct','proc-label',0,'');
-}
-
-// ── Benchmark (FIXED: sequential extraction) ───────────────────────────────
-async function startBenchmark() {
-  if (!S.bench1File || !S.bench2File) return;
-  document.getElementById('bench-error').innerHTML = '';
-  document.getElementById('bench-upload').style.display = 'none';
-  document.getElementById('bench-processing').style.display = 'block';
-  document.getElementById('bench-results').style.display = 'none';
-
-  try {
-    // Step 1a: Audio sync (optional)
-    let offset1 = 0, offset2 = 0;
-    const doSync = document.getElementById('bench-sync-audio')?.checked;
-    if (doSync) {
-      setBStep(1,'active');
-      setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',5,'Detecting music beats…');
-      try {
-        const offsets = await detectSyncOffsets(S.bench1File, S.bench2File,
-          msg => setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',8, msg));
-        offset1 = offsets.offset1; offset2 = offsets.offset2;
-      } catch(e) { console.warn('Sync failed, proceeding without:', e.message); }
-    }
-
-    // Step 1b: Extract YOUR video
-    setBStep(1,'active');
-    setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',12,
-      doSync ? `Extracting frames from your video (from beat at ${offset1.toFixed(1)}s)…` : 'Extracting frames from your video…');
-    let r1;
-    try { r1 = await extractFramesIsolatedFrom(S.bench1File, offset1); }
-    catch(e) { throw new Error('Could not extract frames from your video: ' + e.message); }
-
-    // Step 1c: Extract BENCHMARK video
-    setBStep(1,'done'); setBStep('1b','active');
-    setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',28,
-      doSync ? `Extracting frames from benchmark video (from beat at ${offset2.toFixed(1)}s)…` : 'Extracting frames from benchmark video…');
-    let r2;
-    try { r2 = await extractFramesIsolatedFrom(S.bench2File, offset2); }
-    catch(e) { throw new Error('Could not extract frames from the benchmark video: ' + e.message); }
-
-    setBStep('1b','done'); setBStep(2,'active');
-    setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',45,'Sending to AI Vision for analysis…');
-
-    const { content, thumbs1: usedThumbs1, thumbs2: usedThumbs2 } = buildBenchmarkContent(
-      r1.frames, r1.thumbs, r2.frames, r2.thumbs,
-      document.getElementById('bench-desc').value, r1.apiFrameCount,
-      doSync ? `Music beat sync applied: dancer frames start at ${offset1.toFixed(1)}s, benchmark frames start at ${offset2.toFixed(1)}s — both anchored to their first musical beat for like-for-like movement comparison.` : ''
-    );
-    const data = await claudeAPI({ model:MODEL, max_tokens:4000, messages:[{role:'user',content}] });
-    const result = parseJSON(data.content.find(b=>b.type==='text')?.text||'');
-    result._thumbs1 = usedThumbs1;
-    result._thumbs2 = usedThumbs2;
-
-    setBStep(2,'done'); setBStep(3,'active');
-    setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',90,'Building comparison report…');
-    await sleep(400);
-    setBStep(3,'done');
-    setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',100,'Done!');
-    await sleep(300);
-
-    S.history.push({ id:Date.now(), type:'benchmark', pose:'Benchmark Comparison', score:result.userScore, thumb:r1.thumbs?.[0]||null, date:new Date().toLocaleDateString(), benchResult:result });
-    saveHistory(); S.lastBenchResult = result;
-    renderBenchmarkResults(result);
-    document.getElementById('bench-processing').style.display = 'none';
-    document.getElementById('bench-results').style.display = 'block';
-    // Wire up lightbox for frame strips
-    const allBenchFrames = [
-      ...(result._thumbs1||[]).map((t,i) => ({src:t, label:`You — Frame A${i+1}`})),
-      ...(result._thumbs2||[]).map((t,i) => ({src:t, label:`Pro — Frame B${i+1}`})),
-    ];
-    makeFramesClickable('bench-frames-a', allBenchFrames.slice(0, result._thumbs1?.length||0));
-    makeFramesClickable('bench-frames-b', allBenchFrames.slice(result._thumbs1?.length||0));
-    updateDashboard();
-
-  } catch(err) {
-    document.getElementById('bench-processing').style.display = 'none';
-    document.getElementById('bench-upload').style.display = 'block';
-    showError('bench-error', err.message);
-    ['bs1','bs1b','bs2','bs3'].forEach(s=>{const d=document.getElementById(s+'-dot');const st=document.getElementById(s+'-st');if(d)d.style.background='var(--border)';if(st)st.textContent='';});
-  }
-}
-
-function renderBenchmarkResults(r) {
-  document.getElementById('bench-user-score').textContent = r.userScore;
-  document.getElementById('bench-pro-score').textContent = r.proScore;
-
-  // Frame strips — show A and B thumbnails side by side
-  const t1 = r._thumbs1 || [], t2 = r._thumbs2 || [];
-  if (t1.length || t2.length) {
-    document.getElementById('bench-frames-a').innerHTML = t1.map((t,i) =>
-      `<div class="frame-item" style="border-color:var(--navy-muted)"><img src="${t}" alt="A${i+1}"/><div class="frame-num" style="background:var(--navy);color:#fff;padding:1px 5px;border-radius:4px">A${i+1}</div></div>`).join('');
-    document.getElementById('bench-frames-b').innerHTML = t2.map((t,i) =>
-      `<div class="frame-item" style="border-color:var(--blush-dark)"><img src="${t}" alt="B${i+1}"/><div class="frame-num" style="background:var(--blush-dark);color:#fff;padding:1px 5px;border-radius:4px">B${i+1}</div></div>`).join('');
-    document.getElementById('bench-frames-wrap').style.display = 'block';
-  } else {
-    document.getElementById('bench-frames-wrap').style.display = 'none';
-  }
-
-  // Render rich improvement cards
-  document.getElementById('bench-imp-list').innerHTML = (r.improvements||[]).map((imp, idx) => {
-    // Support both old format {area, gap, description} and new format {bodyPart, area, gap, whatYouDo, whatProDoes, correction, drill}
-    const isRich = !!(imp.whatYouDo || imp.correction || imp.drill);
-    const rank = idx + 1;
-    const rankColor = rank === 1 ? 'var(--blush-dark)' : rank === 2 ? 'var(--gold-dark)' : 'var(--ink-soft)';
-
-    if (isRich) {
-      return `<div class="imp-item" style="border-left:3px solid ${rankColor}">
-        <div class="imp-header">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:20px;height:20px;border-radius:50%;background:${rankColor};color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${rank}</div>
-            <div>
-              <div class="imp-area">${imp.area}</div>
-              ${imp.bodyPart ? `<div style="font-size:10px;color:var(--ink-soft);margin-top:1px;font-style:italic">${imp.bodyPart}</div>` : ''}
-            </div>
-          </div>
-          <span class="badge" style="background:var(--blush-light);color:var(--blush-deep);flex-shrink:0">−${imp.gap} pts</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-          ${imp.whatYouDo ? `<div style="display:flex;gap:8px;align-items:flex-start">
-            <div style="width:6px;height:6px;border-radius:50%;background:var(--blush-dark);margin-top:5px;flex-shrink:0"></div>
-            <div><span style="font-size:9px;font-weight:600;color:var(--blush-dark);text-transform:uppercase;letter-spacing:.06em">You (Frame A) </span><span style="font-size:11px;color:var(--ink-mid);line-height:1.6">${imp.whatYouDo}</span></div>
-          </div>` : ''}
-          ${imp.whatProDoes ? `<div style="display:flex;gap:8px;align-items:flex-start">
-            <div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:5px;flex-shrink:0"></div>
-            <div><span style="font-size:9px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.06em">Pro (Frame B) </span><span style="font-size:11px;color:var(--ink-mid);line-height:1.6">${imp.whatProDoes}</span></div>
-          </div>` : ''}
-          ${imp.correction ? `<div style="display:flex;gap:8px;align-items:flex-start;background:var(--navy-pale);border-radius:8px;padding:8px 10px">
-            <div style="font-size:13px;flex-shrink:0">🎯</div>
-            <div><span style="font-size:9px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em">Correction </span><span style="font-size:11px;color:var(--navy);line-height:1.6">${imp.correction}</span></div>
-          </div>` : ''}
-          ${imp.drill ? `<div style="display:flex;gap:8px;align-items:flex-start;background:var(--gold-light);border-radius:8px;padding:8px 10px">
-            <div style="font-size:13px;flex-shrink:0">🔁</div>
-            <div><span style="font-size:9px;font-weight:600;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.06em">Drill </span><span style="font-size:11px;color:#6B4A10;line-height:1.6">${imp.drill}</span></div>
-          </div>` : (imp.description ? `<div class="imp-desc">${imp.description}</div>` : '')}
-        </div>
-      </div>`;
-    } else {
-      // Fallback: old format
-      return `<div class="imp-item" style="border-left:3px solid ${rankColor}">
-        <div class="imp-header">
-          <div class="imp-area">${imp.area}</div>
-          <span class="badge" style="background:var(--blush-light);color:var(--blush-deep)">−${imp.gap} pts</span>
-        </div>
-        <div class="imp-desc" style="margin-top:6px">${imp.description||''}</div>
-      </div>`;
-    }
-  }).join('');
-
-  // Render strength cards
-  document.getElementById('bench-str-list').innerHTML = (r.strengths||[]).map(s => {
-    const isRich = !!(s.bodyPart);
-    return `<div class="imp-item" style="border-left:3px solid var(--green)">
-      <div class="imp-header">
-        <div>
-          <div class="imp-area">${s.area}</div>
-          ${isRich && s.bodyPart ? `<div style="font-size:10px;color:var(--ink-soft);margin-top:1px;font-style:italic">${s.bodyPart}</div>` : ''}
-        </div>
-        <span class="badge" style="background:var(--green-light);color:var(--green)">✓ Strength</span>
-      </div>
-      <div class="imp-desc" style="margin-top:6px">${s.note||''}</div>
-    </div>`;
-  }).join('');
-}
-
-function resetBenchmark() {
-  S.bench1File = null; S.bench2File = null;
-  ['bench-slot-1','bench-slot-2'].forEach(id=>document.getElementById(id)?.classList.remove('has-file'));
-  document.getElementById('bench1-label').textContent='My Performance';
-  document.getElementById('bench2-label').textContent='Professional Reference';
-  document.getElementById('bench-submit-btn').disabled = true;
-  document.getElementById('bench-error').innerHTML = '';
-  document.getElementById('bench-upload').style.display = 'block';
-  document.getElementById('bench-processing').style.display = 'none';
-  document.getElementById('bench-results').style.display = 'none';
-  ['bs1','bs1b','bs2','bs3'].forEach(s=>{const d=document.getElementById(s+'-dot');const st=document.getElementById(s+'-st');if(d)d.style.background='var(--border)';if(st)st.textContent='';});
-  setProc('bench-proc-bar','bench-proc-pct','bench-proc-label',0,'');
 }
 
 // ── Progress (FIXED: sequential extraction) ────────────────────────────────
@@ -2014,14 +1661,13 @@ function updateProfile() {
 }
 
 function renderHistoryRows(items) {
-  const typeInfo={solo:{bg:'var(--blush-light)',fg:'var(--blush-deep)',label:'Solo'},benchmark:{bg:'var(--gold-light)',fg:'var(--gold-dark)',label:'Benchmark'},progress:{bg:'var(--green-light)',fg:'var(--green)',label:'Progress'}};
+  const typeInfo={solo:{bg:'var(--blush-light)',fg:'var(--blush-deep)',label:'Solo'},progress:{bg:'var(--green-light)',fg:'var(--green)',label:'Progress'}};
   return items.map(h=>{const t=typeInfo[h.type]||typeInfo.solo,hasReport=!!(h.report||h.benchResult||h.progResult);return`<div class="hist-row" style="cursor:${hasReport?'pointer':'default'}" onclick="${hasReport?`openHistoryItem(${h.id})`:''}"><div class="hist-thumb" style="background:${t.bg}">${h.thumb?`<img src="${h.thumb}" alt=""/>`:'🎭'}</div><div class="hist-info"><div class="hist-title">${h.pose}</div><div class="hist-meta">${h.date}${h.score?' · Score: '+h.score:''}${h.style?' · '+h.style:''}</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:${t.bg};color:${t.fg}">${t.label}</span>${hasReport?'<span style="font-size:11px;color:var(--ink-soft)">→</span>':''}</div></div>`;}).join('');
 }
 
 function openHistoryItem(id) {
   const entry=S.history.find(h=>h.id===id); if(!entry) return;
   if (entry.type==='solo'&&entry.report){showView('analysis',null);document.getElementById('analysis-upload').style.display='none';document.getElementById('analysis-processing').style.display='none';document.getElementById('analysis-report').style.display='block';S.style=entry.style||'Classical';renderAnalysisReport(entry.report,entry.thumbs||[]);}
-  else if (entry.type==='benchmark'&&entry.benchResult){showView('benchmark',null);document.getElementById('bench-upload').style.display='none';document.getElementById('bench-processing').style.display='none';document.getElementById('bench-results').style.display='block';renderBenchmarkResults(entry.benchResult);}
   else if (entry.type==='progress'&&entry.progResult){showView('progress',null);document.getElementById('prog-upload').style.display='none';document.getElementById('prog-processing').style.display='none';document.getElementById('prog-results').style.display='block';renderProgressResults(entry.progResult);}
 }
 

@@ -25,16 +25,9 @@ try {
 
 const app          = express();
 const PORT         = 3001;
-const API_KEY      = process.env.OPENAI_API_KEY;
-const MODEL        = process.env.OPENAI_MODEL || 'gpt-4o';
 const GEMINI_KEY   = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 
-if (!API_KEY) {
-  console.warn('\n⚠️   OPENAI_API_KEY not set — server will start but analyses will fail.');
-  console.warn('    In Codespaces: Settings → Secrets → add OPENAI_API_KEY');
-  console.warn('    Locally:       OPENAI_API_KEY=sk-... node server.js\n');
-}
 
 app.use(cors());
 app.use(express.json({ limit: '60mb' }));
@@ -49,37 +42,12 @@ app.get('/health', (req, res) => {
   const proto = req.headers['x-forwarded-proto'] || 'http';
   res.json({
     ok: true,
-    model: MODEL,
+    model: GEMINI_MODEL,
     appUrl: `${proto}://${host}/index.html`,
     isCodespaces: !!process.env.CODESPACE_NAME,
   });
 });
 
-// OpenAI API proxy
-app.post('/api/claude', async (req, res) => {
-  try {
-    const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify(req.body),
-    });
-
-    const data = await upstream.json();
-    if (!upstream.ok) {
-      console.error(`OpenAI API error ${upstream.status}:`, data?.error?.message);
-      return res.status(upstream.status).json(data);
-    }
-
-    console.log(`✓ Analysis done — tokens: ${data.usage?.total_tokens}`);
-    res.json(data);
-  } catch (err) {
-    console.error('Proxy error:', err.message);
-    res.status(500).json({ error: { message: err.message } });
-  }
-});
 
 // List available Gemini models (for debugging model name issues)
 app.get('/api/gemini-models', async (_, res) => {
@@ -356,15 +324,14 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('├─────────────────────────────────────────────────────────────────┤');
     console.log(`│  App URL:  ${fwdUrl}/index.html`);
     console.log('│  (Codespaces will also show a popup — click "Open in Browser")  │');
-    console.log(`│  OpenAI API key:  ${API_KEY    ? 'loaded ✓' : '⚠️  NOT SET — add in Codespaces Secrets'}`);
-    console.log(`│  Gemini API key:  ${GEMINI_KEY ? 'loaded ✓' : '⚠️  NOT SET — Gemini analysis unavailable'}`);
+    console.log(`│  Gemini API key:  ${GEMINI_KEY ? 'loaded ✓' : '⚠️  NOT SET — add GEMINI_API_KEY in Codespaces Secrets'}`);
     console.log('└─────────────────────────────────────────────────────────────────┘\n');
   } else {
     console.log('\n┌──────────────────────────────────────────────────────┐');
     console.log('│           Élevé AI  —  Local Proxy Server            │');
     console.log('├──────────────────────────────────────────────────────┤');
     console.log(`│  Open:  http://localhost:${PORT}/index.html  │`);
-    console.log(`│  OpenAI API key: ${API_KEY ? 'loaded ✓' : '⚠️  NOT SET'}                    │`);
+    console.log(`│  Gemini API key: ${GEMINI_KEY ? 'loaded ✓' : '⚠️  NOT SET — add GEMINI_API_KEY'}  │`);
     console.log('└──────────────────────────────────────────────────────┘\n');
   }
 });
