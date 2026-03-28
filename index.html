@@ -1711,11 +1711,24 @@ function renderProgressResults(r) {
   const focusAreas = r.focusAreas || [];
   const fwrap = document.getElementById('prog-focus-wrap');
   if (focusAreas.length) {
-    document.getElementById('prog-focus-list').innerHTML = focusAreas.map((f, i) =>
-      `<div style="display:flex;gap:12px;align-items:flex-start;${i>0?'margin-top:12px;padding-top:12px;border-top:.5px solid var(--border)':''}">
+    // Extract timestamps from focus text — both "at m:ss" and "(m:ss)" formats
+    const focusTsRegex = /(?:at |@)\s*(\d{1,2}:\d{2})|\((\d{1,2}:\d{2})\)/g;
+    document.getElementById('prog-focus-list').innerHTML = focusAreas.map((f, i) => {
+      const tsMatches = [...f.matchAll(focusTsRegex)];
+      const timestamps = tsMatches.map(m => m[1] || m[2]);
+      // Strip timestamp patterns from display text
+      const cleanF = f.replace(/(?:at |@)\s*\d{1,2}:\d{2}|\(\d{1,2}:\d{2}\)/g, '').replace(/\s{2,}/g, ' ').trim();
+      const chips = timestamps.map(ts =>
+        `<span class="chip-meta" onclick="seekProgVideo('prog-video-2','${ts}')" style="cursor:pointer;margin-right:6px">${ts} Recent ▶</span>`
+      ).join('');
+      return `<div style="display:flex;gap:12px;align-items:flex-start;${i>0?'margin-top:12px;padding-top:12px;border-top:.5px solid var(--border)':''}">
         <div style="width:24px;height:24px;border-radius:50%;background:var(--navy-pale);color:var(--navy);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
-        <div style="font-size:13px;color:var(--ink-mid);line-height:1.6">${f}</div>
-      </div>`).join('');
+        <div>
+          <div style="font-size:13px;color:var(--ink-mid);line-height:1.6;margin-bottom:${chips?'4px':'0'}">${cleanF}</div>
+          ${chips ? `<div>${chips}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
     fwrap.style.display = 'block';
   } else fwrap.style.display = 'none';
 }
