@@ -30,6 +30,12 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 
 
 app.use(cors());
+// Required for SharedArrayBuffer (FFmpeg.wasm video compression)
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  next();
+});
 app.use(express.json({ limit: '60mb' }));
 app.use(express.static(path.dirname(__filename)));
 
