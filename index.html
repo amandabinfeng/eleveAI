@@ -1064,32 +1064,36 @@ function parseJSON(text) {
 let _ffmpeg = null;
 async function loadFFmpeg() {
   if (_ffmpeg) return _ffmpeg;
-  const CDN = 'https://cdn.jsdelivr.net/npm';
-  const { FFmpeg }    = await import(`${CDN}/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js`);
-  const { toBlobURL } = await import(`${CDN}/@ffmpeg/util@0.12.1/dist/esm/index.js`);
-  _ffmpeg = new FFmpeg();
-  const base = `${CDN}/@ffmpeg/core@0.12.6/dist/umd`;
-  await _ffmpeg.load({
-    coreURL: await toBlobURL(`${base}/ffmpeg-core.js`,   'text/javascript'),
-    wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+  // v0.11.x — no SharedArrayBuffer / COOP/COEP required
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
   });
+  const { createFFmpeg } = window.FFmpeg;
+  _ffmpeg = createFFmpeg({
+    corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+    log: false
+  });
+  await _ffmpeg.load();
   return _ffmpeg;
 }
 async function compressVideo(file, onProgress) {
   const ffmpeg = await loadFFmpeg();
-  const { fetchFile } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js');
-  ffmpeg.on('progress', ({ progress }) => onProgress(Math.min(99, Math.round(progress * 100))));
-  await ffmpeg.writeFile('input.mp4', await fetchFile(file));
-  await ffmpeg.exec([
+  const { fetchFile } = window.FFmpeg;
+  ffmpeg.setProgress(({ ratio }) => onProgress(Math.min(99, Math.round(ratio * 100))));
+  ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+  await ffmpeg.run(
     '-i', 'input.mp4',
     '-vf', "scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease",
     '-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast',
     '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
     'output.mp4'
-  ]);
-  const data = await ffmpeg.readFile('output.mp4');
-  await ffmpeg.deleteFile('input.mp4');
-  await ffmpeg.deleteFile('output.mp4');
+  );
+  const data = ffmpeg.FS('readFile', 'output.mp4');
+  ffmpeg.FS('unlink', 'input.mp4');
+  ffmpeg.FS('unlink', 'output.mp4');
   const sizeMB = (data.buffer.byteLength / 1024 / 1024).toFixed(1);
   return { file: new File([data.buffer], file.name.replace(/\.[^.]+$/, '_720p.mp4'), { type: 'video/mp4' }), sizeMB };
 }
