@@ -739,6 +739,8 @@ const viewTitles = {
   profile:   ['Profile','Your history and settings'],
 };
 function showView(id, navEl) {
+  // Pause all videos when navigating away so audio doesn't continue in background
+  document.querySelectorAll('video').forEach(v => { v.pause(); });
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const view = document.getElementById('view-' + id);
