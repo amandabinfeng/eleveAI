@@ -1150,19 +1150,38 @@ async function handleFile(file, slot) {
     document.getElementById('video-preview-wrap').style.display = 'block';
     document.getElementById('video-preview').src = S.analysisVideoURL;
     document.getElementById('analysis-submit-btn').disabled = false;
-  } else if (slot === 'prog1') {
-    S.prog1File = file;
-    if (S.prog1VideoURL) URL.revokeObjectURL(S.prog1VideoURL);
-    S.prog1VideoURL = URL.createObjectURL(file);
-    document.getElementById('prog-slot-1').classList.add('has-file');
-    document.getElementById('prog1-label').textContent = '✓ ' + file.name.slice(0,24);
-    if (S.prog1File && S.prog2File) document.getElementById('prog-submit-btn').disabled = false;
-  } else if (slot === 'prog2') {
-    S.prog2File = file;
-    if (S.prog2VideoURL) URL.revokeObjectURL(S.prog2VideoURL);
-    S.prog2VideoURL = URL.createObjectURL(file);
-    document.getElementById('prog-slot-2').classList.add('has-file');
-    document.getElementById('prog2-label').textContent = '✓ ' + file.name.slice(0,24);
+  } else if (slot === 'prog1' || slot === 'prog2') {
+    const SIZE_LIMIT = 50 * 1024 * 1024;
+    const slotNum   = slot === 'prog1' ? '1' : '2';
+    const labelEl   = document.getElementById(`prog${slotNum}-label`);
+    const slotEl    = document.getElementById(`prog-slot-${slotNum}`);
+    slotEl.classList.add('has-file');
+    if (file.size > SIZE_LIMIT) {
+      const origMB = (file.size / 1024 / 1024).toFixed(0);
+      if (labelEl) labelEl.textContent = `Compressing ${origMB}MB…`;
+      document.getElementById('prog-submit-btn').disabled = true;
+      try {
+        const { file: compressed, sizeMB } = await compressVideo(file, (pct) => {
+          if (labelEl) labelEl.textContent = `${pct}% — compressing…`;
+        });
+        file = compressed;
+        if (labelEl) labelEl.textContent = `✓ ${file.name.slice(0,22)} (${sizeMB}MB)`;
+      } catch(e) {
+        console.warn(`Compression failed for ${slot}, using original:`, e.message);
+        if (labelEl) labelEl.textContent = `✓ ${file.name.slice(0,24)} (original)`;
+      }
+    } else {
+      if (labelEl) labelEl.textContent = '✓ ' + file.name.slice(0,24);
+    }
+    if (slot === 'prog1') {
+      S.prog1File = file;
+      if (S.prog1VideoURL) URL.revokeObjectURL(S.prog1VideoURL);
+      S.prog1VideoURL = URL.createObjectURL(file);
+    } else {
+      S.prog2File = file;
+      if (S.prog2VideoURL) URL.revokeObjectURL(S.prog2VideoURL);
+      S.prog2VideoURL = URL.createObjectURL(file);
+    }
     if (S.prog1File && S.prog2File) document.getElementById('prog-submit-btn').disabled = false;
   }
 }
