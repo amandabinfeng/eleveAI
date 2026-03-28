@@ -1102,8 +1102,11 @@ async function compressVideo(file, onProgress) {
   const data = ffmpeg.FS('readFile', 'output.mp4');
   ffmpeg.FS('unlink', 'input.mp4');
   ffmpeg.FS('unlink', 'output.mp4');
-  const sizeMB = (data.buffer.byteLength / 1024 / 1024).toFixed(1);
-  return { file: new File([data.buffer], file.name.replace(/\.[^.]+$/, '_480p.mp4'), { type: 'video/mp4' }), sizeMB };
+  // data is a Uint8Array view into the WASM heap — .slice() copies only the
+  // actual file bytes (not the entire heap buffer which would be ~256MB+)
+  const safeData = data.slice();
+  const sizeMB = (safeData.byteLength / 1024 / 1024).toFixed(1);
+  return { file: new File([safeData], file.name.replace(/\.[^.]+$/, '_480p.mp4'), { type: 'video/mp4' }), sizeMB };
 }
 
 // ── File handling ──────────────────────────────────────────────────────────
