@@ -395,7 +395,7 @@ input.field:focus{border-color:var(--navy)}
                 <div class="panel-body">
                   <div class="drop-zone" id="drop-zone" ondragover="onDrag(event,'drop-zone',true)" ondragleave="onDrag(event,'drop-zone',false)" ondrop="onDrop(event,'analysis')">
                     <input type="file" accept="video/mp4,video/quicktime,video/*" onchange="onFileInput(event,'analysis')" id="analysis-file-input"/>
-                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · no size limit</div></div>
+                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 720p</div></div>
                   </div>
                   <div id="video-preview-wrap" style="display:none" class="video-wrap">
                     <video id="video-preview" controls playsinline></video>
@@ -1060,17 +1060,76 @@ function parseJSON(text) {
   return JSON.parse(start >= 0 ? clean.slice(start) : clean);
 }
 
+// ── Video compression (FFmpeg.wasm — lazy loaded) ──────────────────────────
+let _ffmpeg = null;
+async function loadFFmpeg() {
+  if (_ffmpeg) return _ffmpeg;
+  const { FFmpeg }    = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
+  const { toBlobURL } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+  _ffmpeg = new FFmpeg();
+  const base = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+  await _ffmpeg.load({
+    coreURL: await toBlobURL(`${base}/ffmpeg-core.js`,   'text/javascript'),
+    wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+  });
+  return _ffmpeg;
+}
+async function compressVideo(file, onProgress) {
+  const ffmpeg = await loadFFmpeg();
+  const { fetchFile } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+  ffmpeg.on('progress', ({ progress }) => onProgress(Math.min(99, Math.round(progress * 100))));
+  await ffmpeg.writeFile('input.mp4', await fetchFile(file));
+  await ffmpeg.exec([
+    '-i', 'input.mp4',
+    '-vf', "scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease",
+    '-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast',
+    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
+    'output.mp4'
+  ]);
+  const data = await ffmpeg.readFile('output.mp4');
+  await ffmpeg.deleteFile('input.mp4');
+  await ffmpeg.deleteFile('output.mp4');
+  const sizeMB = (data.buffer.byteLength / 1024 / 1024).toFixed(1);
+  return { file: new File([data.buffer], file.name.replace(/\.[^.]+$/, '_720p.mp4'), { type: 'video/mp4' }), sizeMB };
+}
+
 // ── File handling ──────────────────────────────────────────────────────────
 function onFileInput(e, slot) { const f = e.target.files[0]; if (f) handleFile(f, slot); }
 function onDrag(e, zoneId, over) { e.preventDefault(); document.getElementById(zoneId)?.classList.toggle('dragover', over); }
 function onDrop(e, slot) { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) handleFile(f, slot); }
-function handleFile(file, slot) {
+async function handleFile(file, slot) {
   if (slot === 'analysis') {
+    const SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
+    if (file.size > SIZE_LIMIT) {
+      const origMB = (file.size / 1024 / 1024).toFixed(0);
+      document.getElementById('drop-zone').classList.add('has-file');
+      document.getElementById('drop-content').innerHTML = `
+        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Compressing to 720p…</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-bottom:12px">${origMB}MB detected — reducing for faster AI upload</div>
+        <div class="progress-track" style="margin-bottom:6px"><div class="progress-fill" id="compress-bar" style="width:0%"></div></div>
+        <div id="compress-pct" style="font-size:11px;color:var(--ink-soft)">Loading compressor… this may take a few minutes</div>`;
+      document.getElementById('analysis-submit-btn').disabled = true;
+      try {
+        const { file: compressed, sizeMB } = await compressVideo(file, (pct) => {
+          const bar = document.getElementById('compress-bar');
+          const lbl = document.getElementById('compress-pct');
+          if (bar) bar.style.width = pct + '%';
+          if (lbl) lbl.textContent = `${pct}% — compressing (may take a few minutes for large files)`;
+        });
+        file = compressed;
+        document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">Compressed to ${sizeMB}MB (720p)</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
+      } catch(e) {
+        console.warn('Compression failed, using original:', e.message);
+        document.getElementById('drop-content').innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div><div class="drop-title" style="color:var(--gold-dark)">Compression failed — uploading original</div><div class="drop-hint">Upload may be slow for large files</div>`;
+      }
+    }
     S.analysisFile = file;
     if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL);
     S.analysisVideoURL = URL.createObjectURL(file);
     document.getElementById('drop-zone').classList.add('has-file');
-    document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
+    if (file.size <= SIZE_LIMIT) {
+      document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
+    }
     document.getElementById('video-preview-wrap').style.display = 'block';
     document.getElementById('video-preview').src = S.analysisVideoURL;
     document.getElementById('analysis-submit-btn').disabled = false;
@@ -1467,7 +1526,7 @@ function resetAnalysis() {
   if (reportVid) { reportVid.pause(); reportVid.src = ''; }
   if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL); S.analysisVideoURL = '';
   document.getElementById('drop-zone').classList.remove('has-file');
-  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · no size limit</div>`;
+  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 720p</div>`;
   document.getElementById('video-preview-wrap').style.display = 'none';
   document.getElementById('analysis-submit-btn').disabled = true;
   document.getElementById('analysis-error').innerHTML = '';
