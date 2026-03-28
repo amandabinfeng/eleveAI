@@ -1915,6 +1915,7 @@ function openHistoryItem(id) {
 }
 
 function deleteHistoryItem(id) {
+  if (!confirm('Delete this entry?')) return;
   S.history=S.history.filter(h=>h.id!==id);
   saveHistory(); updateDashboard(); updateProfile();
 }
