@@ -1529,6 +1529,7 @@ function seekReportVideo(timeStr) {
   // If video src isn't loaded yet, re-attach it and wait for metadata
   if (!vid.src && S.analysisVideoURL) { vid.src = S.analysisVideoURL; vid.load(); }
   function doSeek() {
+    if (vid.ended) vid.pause();   // reset ended state so seek + play work reliably
     vid.currentTime = secs;
     vid.play().catch(() => {});  // ignore autoplay-policy errors
     vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1549,6 +1550,7 @@ function seekProgVideo(videoId, timeStr) {
   const urlMap = { 'prog-video-1': S.prog1VideoURL, 'prog-video-2': S.prog2VideoURL };
   if (!vid.src && urlMap[videoId]) { vid.src = urlMap[videoId]; vid.load(); }
   function doSeek() {
+    if (vid.ended) vid.pause();   // reset ended state so seek + play work reliably
     vid.currentTime = secs;
     vid.play().catch(() => {});
     vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
