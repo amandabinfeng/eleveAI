@@ -341,9 +341,9 @@ input.field:focus{border-color:var(--navy)}
             <div class="hero-actions">
               <button class="btn btn-blush" onclick="showView('analysis',null)">Start Analysis →</button>
             </div>
-            <div style="margin-top:16px;font-size:11px;color:rgba(255,255,255,0.55);line-height:1.6;max-width:400px">AI feedback is a training tool, not a substitute for your coach. Share these insights with your ballet instructor to build the most effective improvement plan together.</div>
           </div>
-          <svg width="160" height="160" viewBox="0 0 56 68" fill="none" style="flex-shrink:0;opacity:.18;position:relative;z-index:1">
+          <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:14px;position:relative;z-index:1">
+          <svg width="160" height="160" viewBox="0 0 56 68" fill="none" style="opacity:.18">
             <circle cx="22" cy="7" r="4.2" fill="#fff"/>
             <path d="M22 11.2 L21.5 14" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
             <path d="M21.5 14 C21 17 20.5 20 20 23" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
@@ -353,6 +353,8 @@ input.field:focus{border-color:var(--navy)}
             <path d="M21 17 C18 15 14 13 10 12" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
             <path d="M21 17 C24 15 27 14 30 14.5 C32 15 33 16 33.5 17.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);text-align:center;line-height:1.6;max-width:140px;font-style:italic">AI insights complement your coach — share reports with your instructor for the best results.</div>
+          </div>
         </div>
         <div class="dash-grid">
           <div class="stat-card"><div class="stat-label">Total Analyses</div><div class="stat-val" id="stat-total">0</div><div class="stat-delta" id="stat-delta">Upload your first video</div></div>
