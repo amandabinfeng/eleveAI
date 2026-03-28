@@ -1539,14 +1539,22 @@ function seekReportVideo(timeStr) {
 
 function seekProgVideo(videoId, timeStr) {
   const vid = document.getElementById(videoId);
-  if (!vid || !timeStr) return;
+  if (!vid || !timeStr || timeStr === 'undefined' || timeStr === 'null') return;
   const parts = timeStr.trim().split(':');
   const secs = parts.length === 2
     ? parseInt(parts[0]) * 60 + parseFloat(parts[1])
     : parseFloat(timeStr);
-  vid.currentTime = secs;
-  vid.play();
-  vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (isNaN(secs)) return;
+  // Re-attach src if video lost it (e.g. after page re-render)
+  const urlMap = { 'prog-video-1': S.prog1VideoURL, 'prog-video-2': S.prog2VideoURL };
+  if (!vid.src && urlMap[videoId]) { vid.src = urlMap[videoId]; vid.load(); }
+  function doSeek() {
+    vid.currentTime = secs;
+    vid.play().catch(() => {});
+    vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  if (vid.readyState >= 1) { doSeek(); }
+  else { vid.addEventListener('loadedmetadata', doSeek, { once: true }); }
 }
 
 function exportPDF() {
@@ -1706,8 +1714,8 @@ function renderProgressResults(r) {
   const vid1 = document.getElementById('prog-video-1');
   const vid2 = document.getElementById('prog-video-2');
   const vidPanel = document.getElementById('prog-video-panel');
-  if (S.prog1VideoURL && vid1) vid1.src = S.prog1VideoURL;
-  if (S.prog2VideoURL && vid2) vid2.src = S.prog2VideoURL;
+  if (S.prog1VideoURL && vid1) { vid1.src = ''; vid1.src = S.prog1VideoURL; vid1.load(); }
+  if (S.prog2VideoURL && vid2) { vid2.src = ''; vid2.src = S.prog2VideoURL; vid2.load(); }
   if (vidPanel) vidPanel.style.display = (S.prog1VideoURL || S.prog2VideoURL) ? 'block' : 'none';
   const t1el = document.getElementById('prog-vid1-title'); if (t1el) t1el.textContent = ctx1;
   const t2el = document.getElementById('prog-vid2-title'); if (t2el) t2el.textContent = ctx2;
