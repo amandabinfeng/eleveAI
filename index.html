@@ -2,6 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<script>
+  // Register service worker to inject COOP/COEP headers — needed for
+  // SharedArrayBuffer (FFmpeg.wasm). Works even behind Codespaces proxy.
+  if ('serviceWorker' in navigator && !self.crossOriginIsolated) {
+    navigator.serviceWorker.register('/coi-serviceworker.js').then(() => location.reload());
+  }
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Élevé AI — Ballet Performance Coach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
