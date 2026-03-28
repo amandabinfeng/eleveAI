@@ -402,7 +402,7 @@ input.field:focus{border-color:var(--navy)}
                 <div class="panel-body">
                   <div class="drop-zone" id="drop-zone" ondragover="onDrag(event,'drop-zone',true)" ondragleave="onDrag(event,'drop-zone',false)" ondrop="onDrop(event,'analysis')">
                     <input type="file" accept="video/mp4,video/quicktime,video/*" onchange="onFileInput(event,'analysis')" id="analysis-file-input"/>
-                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 720p</div></div>
+                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 480p</div></div>
                   </div>
                   <div id="video-preview-wrap" style="display:none" class="video-wrap">
                     <video id="video-preview" controls playsinline></video>
@@ -1093,16 +1093,17 @@ async function compressVideo(file, onProgress) {
   ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
   await ffmpeg.run(
     '-i', 'input.mp4',
-    '-vf', "scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease",
-    '-c:v', 'libx264', '-crf', '26', '-preset', 'ultrafast',
-    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
+    '-vf', "scale='min(854,iw)':'min(480,ih)':force_original_aspect_ratio=decrease",
+    '-r', '24',
+    '-c:v', 'libx264', '-crf', '30', '-preset', 'ultrafast',
+    '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart',
     'output.mp4'
   );
   const data = ffmpeg.FS('readFile', 'output.mp4');
   ffmpeg.FS('unlink', 'input.mp4');
   ffmpeg.FS('unlink', 'output.mp4');
   const sizeMB = (data.buffer.byteLength / 1024 / 1024).toFixed(1);
-  return { file: new File([data.buffer], file.name.replace(/\.[^.]+$/, '_720p.mp4'), { type: 'video/mp4' }), sizeMB };
+  return { file: new File([data.buffer], file.name.replace(/\.[^.]+$/, '_480p.mp4'), { type: 'video/mp4' }), sizeMB };
 }
 
 // ── File handling ──────────────────────────────────────────────────────────
@@ -1116,7 +1117,7 @@ async function handleFile(file, slot) {
       const origMB = (file.size / 1024 / 1024).toFixed(0);
       document.getElementById('drop-zone').classList.add('has-file');
       document.getElementById('drop-content').innerHTML = `
-        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Compressing to 720p…</div>
+        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Compressing to 480p…</div>
         <div style="font-size:11px;color:var(--ink-soft);margin-bottom:12px">${origMB}MB detected — reducing for faster AI upload</div>
         <div class="progress-track" style="margin-bottom:6px"><div class="progress-fill" id="compress-bar" style="width:0%"></div></div>
         <div id="compress-pct" style="font-size:11px;color:var(--ink-soft)">Loading compressor… this may take a few minutes</div>`;
@@ -1538,7 +1539,7 @@ function resetAnalysis() {
   if (reportVid) { reportVid.pause(); reportVid.src = ''; }
   if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL); S.analysisVideoURL = '';
   document.getElementById('drop-zone').classList.remove('has-file');
-  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 720p</div>`;
+  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 480p</div>`;
   document.getElementById('video-preview-wrap').style.display = 'none';
   document.getElementById('analysis-submit-btn').disabled = true;
   document.getElementById('analysis-error').innerHTML = '';
