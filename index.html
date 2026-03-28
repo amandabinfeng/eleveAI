@@ -1433,7 +1433,11 @@ function renderAnalysisReport(r, thumbs, usedFallback) {
   if (fallbackNotice) fallbackNotice.style.display = usedFallback ? 'block' : 'none';
 
   const reportVid = document.getElementById('report-video');
-  if (reportVid && S.analysisVideoURL) reportVid.src = S.analysisVideoURL;
+  if (reportVid && S.analysisVideoURL) {
+    reportVid.src = '';          // force reset so browsers re-trigger load
+    reportVid.src = S.analysisVideoURL;
+    reportVid.load();
+  }
 
   const overall = r.overallScore || Math.round(((r.techniqueScore||0)+(r.artistryScore||0))/2) || 0;
   const tech = r.techniqueScore || 0;
@@ -1497,14 +1501,21 @@ function renderAnalysisReport(r, thumbs, usedFallback) {
 
 function seekReportVideo(timeStr) {
   const vid = document.getElementById('report-video');
-  if (!vid || !timeStr) return;
+  if (!vid || !timeStr || timeStr === 'undefined' || timeStr === 'null') return;
   const parts = timeStr.trim().split(':');
   const secs = parts.length === 2
     ? parseInt(parts[0]) * 60 + parseFloat(parts[1])
     : parseFloat(timeStr);
-  vid.currentTime = secs;
-  vid.play();
-  vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (isNaN(secs)) return;
+  // If video src isn't loaded yet, re-attach it and wait for metadata
+  if (!vid.src && S.analysisVideoURL) { vid.src = S.analysisVideoURL; vid.load(); }
+  function doSeek() {
+    vid.currentTime = secs;
+    vid.play().catch(() => {});  // ignore autoplay-policy errors
+    vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  if (vid.readyState >= 1) { doSeek(); }  // HAVE_METADATA — can seek immediately
+  else { vid.addEventListener('loadedmetadata', doSeek, { once: true }); }
 }
 
 function seekProgVideo(videoId, timeStr) {
