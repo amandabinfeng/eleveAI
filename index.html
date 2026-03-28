@@ -220,6 +220,8 @@ input.field:focus{border-color:var(--navy)}
 .delta-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px}
 .history-list{display:flex;flex-direction:column;gap:0}
 .hist-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:.5px solid var(--border);cursor:pointer;transition:background .1s}
+.hist-delete{background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink-soft);padding:2px 6px;border-radius:4px;line-height:1;transition:background .15s,color .15s}
+.hist-delete:hover{background:var(--blush-light);color:var(--blush-deep)}
 .hist-row:last-child{border-bottom:none}
 .hist-thumb{width:56px;height:44px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--navy-pale);display:flex;align-items:center;justify-content:center}
 .hist-thumb img{width:100%;height:100%;object-fit:cover}
@@ -386,7 +388,7 @@ input.field:focus{border-color:var(--navy)}
           </div>
         </div>
         <div id="dash-history" style="margin-top:24px;display:none">
-          <div class="section-hdr"><div class="section-title">Recent Activity</div></div>
+          <div class="section-hdr" style="justify-content:space-between;align-items:center"><div class="section-title">Recent Activity</div><button onclick="deleteAllHistory()" style="font-size:12px;color:var(--ink-soft);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background .15s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">Delete All</button></div>
           <div class="panel"><div class="panel-body" style="padding:0 24px"><div class="history-list" id="dash-history-list"></div></div></div>
         </div>
       </div>
@@ -738,7 +740,7 @@ const viewTitles = {
   progress:  ['Progress','Track your improvement over time'],
   profile:   ['Profile','Your history and settings'],
 };
-function showView(id, navEl) {
+function showView(id, navEl, skipPush) {
   // Pause all videos when navigating away so audio doesn't continue in background
   document.querySelectorAll('video').forEach(v => { v.pause(); });
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -752,7 +754,9 @@ function showView(id, navEl) {
   document.getElementById('topbar-sub').textContent = sub;
   if (id === 'dashboard') updateDashboard();
   if (id === 'profile') updateProfile();
+  if (!skipPush) window.history.pushState({view: id}, '');
 }
+window.addEventListener('popstate', e => { showView(e.state?.view || 'dashboard', null, true); });
 
 // ── Connection check ───────────────────────────────────────────────────────
 async function checkConnection(showAlert) {
@@ -1901,13 +1905,22 @@ function updateProfile() {
 
 function renderHistoryRows(items) {
   const typeInfo={solo:{bg:'var(--blush-light)',fg:'var(--blush-deep)',label:'Solo'},progress:{bg:'var(--green-light)',fg:'var(--green)',label:'Progress'}};
-  return items.map(h=>{const t=typeInfo[h.type]||typeInfo.solo,hasReport=!!(h.report||h.benchResult||h.progResult);return`<div class="hist-row" style="cursor:${hasReport?'pointer':'default'}" onclick="${hasReport?`openHistoryItem(${h.id})`:''}"><div class="hist-thumb" style="background:${t.bg}">${h.thumb?`<img src="${h.thumb}" alt=""/>`:'🎭'}</div><div class="hist-info"><div class="hist-title">${h.pose}</div><div class="hist-meta">${h.date}${h.score?' · Score: '+h.score:''}${h.style?' · '+h.style:''}</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:${t.bg};color:${t.fg}">${t.label}</span>${hasReport?'<span style="font-size:11px;color:var(--ink-soft)">→</span>':''}</div></div>`;}).join('');
+  return items.map(h=>{const t=typeInfo[h.type]||typeInfo.solo,hasReport=!!(h.report||h.benchResult||h.progResult);return`<div class="hist-row" style="cursor:${hasReport?'pointer':'default'}" onclick="${hasReport?`openHistoryItem(${h.id})`:''}"><div class="hist-thumb" style="background:${t.bg}">${h.thumb?`<img src="${h.thumb}" alt=""/>`:'🎭'}</div><div class="hist-info"><div class="hist-title">${h.pose}</div><div class="hist-meta">${h.date}${h.score?' · Score: '+h.score:''}${h.style?' · '+h.style:''}</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge" style="background:${t.bg};color:${t.fg}">${t.label}</span>${hasReport?'<span style="font-size:11px;color:var(--ink-soft)">→</span>':''}<button class="hist-delete" onclick="deleteHistoryItem(${h.id});event.stopPropagation()" title="Delete">×</button></div></div>`;}).join('');
 }
 
 function openHistoryItem(id) {
   const entry=S.history.find(h=>h.id===id); if(!entry) return;
   if (entry.type==='solo'&&entry.report){showView('analysis',null);document.getElementById('analysis-upload').style.display='none';document.getElementById('analysis-processing').style.display='none';document.getElementById('analysis-report').style.display='block';S.style=entry.style||'Classical';S.analysisVideoURL=null;renderAnalysisReport(entry.report,entry.thumbs||[]);const vidPanel=document.getElementById('report-video-panel');if(vidPanel)vidPanel.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink-soft);font-size:13px">Video not available for past analyses</div>';}
   else if (entry.type==='progress'&&entry.progResult){showView('progress',null);document.getElementById('prog-upload').style.display='none';document.getElementById('prog-processing').style.display='none';document.getElementById('prog-results').style.display='block';renderProgressResults(entry.progResult);}
+}
+
+function deleteHistoryItem(id) {
+  S.history=S.history.filter(h=>h.id!==id);
+  saveHistory(); updateDashboard(); updateProfile();
+}
+function deleteAllHistory() {
+  if (!confirm('Delete all history entries?')) return;
+  S.history=[]; saveHistory(); updateDashboard(); updateProfile();
 }
 
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s;}
@@ -2103,6 +2116,7 @@ async function extractFramesIsolatedFrom(file, startOffset) {
 loadHistory();
 checkConnection(false);
 updateDashboard();
+window.history.replaceState({view: 'dashboard'}, '');
 </script>
 </body>
 </html>
