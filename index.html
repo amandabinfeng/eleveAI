@@ -1093,7 +1093,7 @@ async function compressVideo(file, onProgress) {
   ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
   await ffmpeg.run(
     '-i', 'input.mp4',
-    '-vf', "scale='min(854,iw)':'min(480,ih)':force_original_aspect_ratio=decrease",
+    '-vf', 'scale=-2:480',          // simpler filter — works reliably in wasm
     '-r', '24',
     '-c:v', 'libx264', '-crf', '30', '-preset', 'ultrafast',
     '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart',
@@ -1105,6 +1105,7 @@ async function compressVideo(file, onProgress) {
   // data is a Uint8Array view into the WASM heap — .slice() copies only the
   // actual file bytes (not the entire heap buffer which would be ~256MB+)
   const safeData = data.slice();
+  if (safeData.byteLength < 1024) throw new Error(`FFmpeg produced empty output (${safeData.byteLength} bytes) — input codec may not be supported`);
   const sizeMB = (safeData.byteLength / 1024 / 1024).toFixed(1);
   return { file: new File([safeData], file.name.replace(/\.[^.]+$/, '_480p.mp4'), { type: 'video/mp4' }), sizeMB };
 }
@@ -1133,7 +1134,7 @@ async function handleFile(file, slot) {
           if (lbl) lbl.textContent = `${pct}% — compressing (may take a few minutes for large files)`;
         });
         file = compressed;
-        document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">Compressed to ${sizeMB}MB (720p)</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
+        document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">Compressed to ${sizeMB}MB (480p)</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
       } catch(e) {
         console.warn('Compression failed, using original:', e.message);
         document.getElementById('drop-content').innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div><div class="drop-title" style="color:var(--gold-dark)">Compression failed — uploading original</div><div class="drop-hint" style="color:var(--ink-soft)">${e.message?.slice(0,80) || 'Unknown error'}</div>`;
