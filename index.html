@@ -1518,13 +1518,18 @@ function renderAnalysisReport(r, thumbs, usedFallback) {
   updateDashboard();
 }
 
+function parseTimestamp(t) {
+  if (!t || t === 'undefined' || t === 'null') return NaN;
+  const p = t.trim().split(':');
+  if (p.length === 3) return parseInt(p[0])*3600 + parseInt(p[1])*60 + parseFloat(p[2]); // H:MM:SS
+  if (p.length === 2) return parseInt(p[0])*60 + parseFloat(p[1]);                        // M:SS
+  return parseFloat(t);
+}
+
 function seekReportVideo(timeStr) {
   const vid = document.getElementById('report-video');
   if (!vid || !timeStr || timeStr === 'undefined' || timeStr === 'null') return;
-  const parts = timeStr.trim().split(':');
-  const secs = parts.length === 2
-    ? parseInt(parts[0]) * 60 + parseFloat(parts[1])
-    : parseFloat(timeStr);
+  const secs = parseTimestamp(timeStr);
   if (isNaN(secs)) return;
   // If video src isn't loaded yet, re-attach it and wait for metadata
   if (!vid.src && S.analysisVideoURL) { vid.src = S.analysisVideoURL; vid.load(); }
@@ -1541,10 +1546,7 @@ function seekReportVideo(timeStr) {
 function seekProgVideo(videoId, timeStr) {
   const vid = document.getElementById(videoId);
   if (!vid || !timeStr || timeStr === 'undefined' || timeStr === 'null') return;
-  const parts = timeStr.trim().split(':');
-  const secs = parts.length === 2
-    ? parseInt(parts[0]) * 60 + parseFloat(parts[1])
-    : parseFloat(timeStr);
+  const secs = parseTimestamp(timeStr);
   if (isNaN(secs)) return;
   // Re-attach src if video lost it (e.g. after page re-render)
   const urlMap = { 'prog-video-1': S.prog1VideoURL, 'prog-video-2': S.prog2VideoURL };
