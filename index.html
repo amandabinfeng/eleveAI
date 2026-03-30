@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -283,9 +284,66 @@ input.field:focus{border-color:var(--navy)}
   .feature-layout > div { width:100% !important; margin-bottom:16px; }
   .panel { box-shadow:none !important; border:1px solid #ddd !important; break-inside:avoid; margin-bottom:16px; }
 }
+/* ── Login overlay ── */
+#login-overlay{position:fixed;inset:0;background:var(--navy);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:var(--font-sans)}
+.login-card{background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.12);border-radius:24px;padding:48px 40px;width:380px;max-width:90vw;text-align:center}
+.login-brand{font-family:var(--font-serif);font-size:42px;color:#fff;font-style:italic;letter-spacing:.04em;margin-bottom:4px}
+.login-sub{font-size:10px;color:var(--navy-muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:32px}
+.login-title{font-family:var(--font-serif);font-size:22px;color:#fff;font-style:italic;margin-bottom:8px}
+.login-desc{font-size:12px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:28px}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border-radius:10px;background:#fff;color:var(--ink);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;margin-bottom:12px}
+.btn-google:hover{background:#f0f4ff;transform:translateY(-1px)}
+.btn-google svg{flex-shrink:0}
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:rgba(255,255,255,.25);font-size:11px}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:.5px;background:rgba(255,255,255,.15)}
+.login-field{width:100%;background:rgba(255,255,255,.08);border:.5px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 14px;color:#fff;font-family:var(--font-sans);font-size:13px;outline:none;margin-bottom:8px;transition:border-color .15s}
+.login-field::placeholder{color:rgba(255,255,255,.3)}
+.login-field:focus{border-color:rgba(255,255,255,.4)}
+.btn-login-email{width:100%;padding:11px;border-radius:10px;background:var(--blush-dark);color:#fff;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;margin-top:4px}
+.btn-login-email:hover{background:var(--blush-deep)}
+.login-toggle{font-size:11px;color:rgba(255,255,255,.45);margin-top:12px;cursor:pointer;transition:color .15s}
+.login-toggle:hover{color:rgba(255,255,255,.75)}
+.login-toggle span{text-decoration:underline}
+.login-error{background:rgba(196,96,108,.2);border:.5px solid var(--blush);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--blush-light);margin-bottom:10px;display:none}
+/* ── Admin table ── */
+.admin-table{width:100%;border-collapse:collapse;font-size:12px}
+.admin-table th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);padding:8px 12px;border-bottom:.5px solid var(--border);text-align:left;font-weight:500}
+.admin-table td{padding:10px 12px;border-bottom:.5px solid var(--border);color:var(--ink-mid);vertical-align:top}
+.admin-table tr:last-child td{border-bottom:none}
+.admin-badge{font-size:9px;padding:2px 7px;border-radius:6px;font-weight:500;display:inline-block}
+/* ── User pill in sidebar ── */
+.user-pill{margin:0 12px 8px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.07)}
+.user-pill-email{font-size:10px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.btn-signout{display:block;width:100%;padding:6px 10px;background:rgba(255,255,255,.08);border:.5px solid rgba(255,255,255,.15);border-radius:8px;color:rgba(255,255,255,.65);font-size:11px;font-family:var(--font-sans);cursor:pointer;text-align:center;transition:all .15s}
+.btn-signout:hover{background:rgba(255,255,255,.14);color:#fff}
 </style>
 </head>
 <body>
+
+<!-- ── Login overlay — shown when not authenticated ── -->
+<div id="login-overlay" style="display:none">
+  <div class="login-card">
+    <div class="login-brand">Élevé</div>
+    <div class="login-sub">AI Coach</div>
+    <div class="login-title">Welcome back</div>
+    <div class="login-desc">Sign in to access your coaching history and analysis tools.</div>
+    <div id="login-error" class="login-error"></div>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.705c-.18-.54-.282-1.117-.282-1.705s.102-1.165.282-1.705V4.963H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.037l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.963L3.964 7.295C4.672 5.168 6.656 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+    <div class="login-divider">or</div>
+    <div id="login-email-form">
+      <input id="login-email" class="login-field" type="email" placeholder="Email address" autocomplete="email"/>
+      <input id="login-password" class="login-field" type="password" placeholder="Password" autocomplete="current-password"/>
+      <button class="btn-login-email" id="login-submit-btn" onclick="signInWithEmail()">Sign In</button>
+      <div class="login-toggle" id="login-mode-toggle" onclick="toggleAuthMode()">
+        No account? <span>Sign up</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-brand">
@@ -312,8 +370,16 @@ input.field:focus{border-color:var(--navy)}
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
         <span>Profile</span>
       </div>
+      <div class="nav-item" data-view="admin" id="nav-admin" onclick="showView('admin',this)" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Admin</span>
+      </div>
     </nav>
     <div class="sidebar-footer">
+      <div id="user-pill" class="user-pill" style="display:none">
+        <div class="user-pill-email" id="user-pill-email">—</div>
+        <button class="btn-signout" onclick="signOut()">Sign out</button>
+      </div>
       <div class="conn-pill" onclick="checkConnection(true)">
         <div class="conn-dot checking" id="conn-dot"></div>
         <div>
@@ -328,11 +394,11 @@ input.field:focus{border-color:var(--navy)}
     <header class="topbar">
       <div>
         <span class="topbar-title" id="topbar-title">Dashboard</span>
-        <span class="topbar-sub" id="topbar-sub">Welcome back, Sofia</span>
+        <span class="topbar-sub" id="topbar-sub">Welcome back</span>
       </div>
       <div class="topbar-right">
         <div id="conn-status-bar" style="font-size:10px;color:var(--ink-soft)"></div>
-        <div class="avatar">S</div>
+        <div class="avatar" id="topbar-avatar">?</div>
       </div>
     </header>
 
@@ -669,8 +735,8 @@ input.field:focus{border-color:var(--navy)}
           <div>
             <div class="panel" style="margin-bottom:16px">
               <div style="background:var(--navy);padding:28px 24px;display:flex;align-items:center;gap:18px">
-                <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:28px;color:#fff;font-style:italic;border:1.5px solid var(--blush)">S</div>
-                <div><div style="font-family:var(--font-serif);font-size:22px;color:#fff">Sofia Marchetti</div><div style="font-size:11px;color:var(--navy-muted);margin-top:3px">Intermediate · Member since Jan 2026</div></div>
+                <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:28px;color:#fff;font-style:italic;border:1.5px solid var(--blush)" id="prof-avatar">?</div>
+                <div><div style="font-family:var(--font-serif);font-size:22px;color:#fff" id="prof-email">—</div><div style="font-size:11px;color:var(--navy-muted);margin-top:3px" id="prof-meta">Loading…</div></div>
                 <div style="margin-left:auto;display:flex;gap:24px">
                   <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:#fff;font-weight:600" id="prof-total">0</div><div style="font-size:9px;color:var(--navy-muted)">Analyses</div></div>
                   <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:var(--blush);font-weight:600" id="prof-best">—</div><div style="font-size:9px;color:var(--navy-muted)">Best Score</div></div>
@@ -694,6 +760,36 @@ input.field:focus{border-color:var(--navy)}
                 </div>
                 <div class="banner banner-navy" style="margin-bottom:0"><div class="banner-title">Running in Codespaces?</div><p>The proxy server handles your API key automatically via the OPENAI_API_KEY secret. No key entry needed here.</p></div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Admin Panel ── -->
+      <div class="view" id="view-admin">
+        <div class="section-hdr"><div class="section-title">Admin Panel</div><div class="section-sub" id="admin-sub"></div></div>
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-head" style="justify-content:space-between">
+            <div class="panel-title">All Users</div>
+            <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="loadAdminData()">Refresh</button>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <div id="admin-users-wrap" style="overflow-x:auto">
+              <table class="admin-table">
+                <thead><tr><th>Email</th><th>Role</th><th>Joined</th><th>Analyses</th></tr></thead>
+                <tbody id="admin-users-tbody"><tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:24px">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">All Analyses</div></div>
+          <div class="panel-body" style="padding:0">
+            <div id="admin-analyses-wrap" style="overflow-x:auto">
+              <table class="admin-table">
+                <thead><tr><th>User</th><th>Type</th><th>Pose</th><th>Score</th><th>Style</th><th>Date</th></tr></thead>
+                <tbody id="admin-analyses-tbody"><tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">Loading…</td></tr></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -731,14 +827,17 @@ const S = {
   history: [],
   lastReport: null, lastBenchResult: null, lastProgResult: null,
   mediapipeReady: false, pose: null,
+  // Auth
+  user: null, isAdmin: false, authToken: null,
 };
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 const viewTitles = {
-  dashboard: ['Dashboard','Welcome back, Sofia'],
+  dashboard: ['Dashboard','Welcome back'],
   analysis:  ['Solo Analysis','Real video → AI Vision → technique report'],
   progress:  ['Progress','Track your improvement over time'],
   profile:   ['Profile','Your history and settings'],
+  admin:     ['Admin Panel','All users and analyses'],
 };
 function showView(id, navEl, skipPush) {
   // Pause all videos when navigating away so audio doesn't continue in background
@@ -752,8 +851,9 @@ function showView(id, navEl, skipPush) {
   const [title, sub] = viewTitles[id] || [id, ''];
   document.getElementById('topbar-title').textContent = title;
   document.getElementById('topbar-sub').textContent = sub;
-  if (id === 'dashboard') updateDashboard();
+  if (id === 'dashboard') { updateDashboard(); if (S.user) document.getElementById('topbar-sub').textContent = 'Welcome back, ' + (S.user.email || ''); }
   if (id === 'profile') updateProfile();
+  if (id === 'admin') loadAdminData();
   if (!skipPush) window.history.pushState({view: id}, '');
 }
 window.addEventListener('popstate', e => { showView(e.state?.view || 'dashboard', null, true); });
@@ -1285,8 +1385,9 @@ async function startAnalysis() {
 
     S.lastReport = report; S.lastReportThumbs = usedThumbs;
     const overallScore = report.overallScore || Math.round(((report.techniqueScore||0)+(report.artistryScore||0))/2);
-    S.history.push({ id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||report.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report });
-    saveHistory();
+    const _histItem1 = { id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||report.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report };
+    S.history.push(_histItem1);
+    saveNewHistoryItem(_histItem1);
     renderAnalysisReport(report, usedThumbs);
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-report').style.display = 'block';
@@ -1363,7 +1464,7 @@ async function startGeminiAnalysis() {
     setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',55,'Analysing performance with Gemini…');
     const resp = await fetch('/api/gemini-analyze-uri', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(S.authToken ? { 'Authorization': 'Bearer ' + S.authToken } : {}) },
       body: JSON.stringify({ fileUri, mimeType, style, desc, ageGroup })
     });
     if (!resp.ok) { const t = await resp.text(); throw new Error(`Server error ${resp.status}: ${t.slice(0,200)}`); }
@@ -1400,8 +1501,9 @@ async function startGeminiAnalysis() {
 
     S.lastReport = result; S.lastReportThumbs = [];
     const overallScore = result.overallScore || Math.round(((result.techniqueScore||0)+(result.artistryScore||0))/2);
-    S.history.push({ id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||result.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), report:result });
-    saveHistory();
+    const _histItem2 = { id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||result.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), report:result };
+    S.history.push(_histItem2);
+    saveNewHistoryItem(_histItem2);
     renderAnalysisReport(result, [], S.usedFallback);
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-report').style.display = 'block';
@@ -1675,7 +1777,7 @@ async function startProgress() {
 
     const compareResp = await fetch('/api/gemini-compare-uri', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(S.authToken ? { 'Authorization': 'Bearer ' + S.authToken } : {}) },
       body: JSON.stringify({ fileUri1: uri1, mimeType1: mt1, fileUri2: uri2, mimeType2: mt2, context1, context2, ageGroup, style, variationName })
     });
     if (!compareResp.ok) { const t = await compareResp.text(); throw new Error(`Server error ${compareResp.status}: ${t.slice(0,200)}`); }
@@ -1690,8 +1792,9 @@ async function startProgress() {
     await sleep(300);
 
     const overallRecent = Math.round(((result.recent?.techniqueScore||0) + (result.recent?.artistryScore||0)) / 2);
-    S.history.push({ id:Date.now(), type:'progress', pose:cap(variationName||'Progress Check'), score:overallRecent, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), progResult:result });
-    saveHistory();
+    const _histItem3 = { id:Date.now(), type:'progress', pose:cap(variationName||'Progress Check'), score:overallRecent, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), progResult:result };
+    S.history.push(_histItem3);
+    saveNewHistoryItem(_histItem3);
     S.lastProgResult = result;
     renderProgressResults(result);
     document.getElementById('prog-processing').style.display = 'none';
@@ -1916,17 +2019,68 @@ function openHistoryItem(id) {
 
 function deleteHistoryItem(id) {
   if (!confirm('Delete this entry?')) return;
-  S.history=S.history.filter(h=>h.id!==id);
-  saveHistory(); updateDashboard(); updateProfile();
+  S.history = S.history.filter(h => h.id !== id);
+  updateDashboard(); updateProfile();
+  if (window._supabase) {
+    window._supabase.from('analyses').delete().eq('id', id)
+      .then(({ error }) => { if (error) console.warn('Supabase delete error:', error.message); });
+  }
 }
 function deleteAllHistory() {
   if (!confirm('Delete all history entries?')) return;
-  S.history=[]; saveHistory(); updateDashboard(); updateProfile();
+  S.history = []; updateDashboard(); updateProfile();
+  if (window._supabase && S.user) {
+    window._supabase.from('analyses').delete().eq('user_id', S.user.id)
+      .then(({ error }) => { if (error) console.warn('Supabase delete error:', error.message); });
+  }
 }
 
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s;}
-function saveHistory(){try{const slim=S.history.map(h=>({...h,thumbs:h.thumbs?[h.thumbs[0]]:[]}));localStorage.setItem('eleve_history',JSON.stringify(slim));}catch(e){console.warn('Could not save history:',e);}}
-function loadHistory(){try{const raw=localStorage.getItem('eleve_history');if(raw)S.history=JSON.parse(raw);}catch(e){S.history=[];}}
+
+// ── Supabase history ────────────────────────────────────────────────────────
+function saveHistory() {
+  // no-op — kept so existing call sites (delete flows) don't break.
+  // New analyses are persisted by saveNewHistoryItem() called explicitly.
+}
+
+function saveNewHistoryItem(item) {
+  if (!window._supabase || !S.user) return;
+  const row = {
+    id:          item.id,
+    user_id:     S.user.id,
+    type:        item.type,
+    pose:        item.pose,
+    score:       item.score || null,
+    style:       item.style || null,
+    age_group:   item.ageGroup || null,
+    date:        item.date || null,
+    report:      item.report || null,
+    prog_result: item.progResult || null,
+  };
+  window._supabase.from('analyses').upsert(row)
+    .then(({ error }) => { if (error) console.warn('Supabase save error:', error.message); });
+}
+
+async function loadHistory() {
+  if (!window._supabase || !S.user) { S.history = []; return; }
+  const { data, error } = await window._supabase
+    .from('analyses')
+    .select('*')
+    .order('id', { ascending: false });
+  if (error) { console.warn('Supabase load error:', error.message); S.history = []; return; }
+  S.history = (data || []).map(row => ({
+    id:         row.id,
+    type:       row.type,
+    pose:       row.pose || 'Performance',
+    score:      row.score,
+    style:      row.style,
+    ageGroup:   row.age_group,
+    date:       row.date,
+    report:     row.report,
+    progResult: row.prog_result,
+    thumb: '', thumbs: [],
+  }));
+}
 
 // ── Lightbox ────────────────────────────────────────────────────────────────
 let _lbImages = [], _lbIdx = 0;
@@ -2114,10 +2268,197 @@ async function extractFramesIsolatedFrom(file, startOffset) {
   });
 }
 
-loadHistory();
-checkConnection(false);
-updateDashboard();
-window.history.replaceState({view: 'dashboard'}, '');
+// ── Supabase Auth ────────────────────────────────────────────────────────────
+let _authMode = 'signin'; // 'signin' | 'signup'
+
+function showLoginOverlay() {
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+function hideLoginOverlay() {
+  document.getElementById('login-overlay').style.display = 'none';
+}
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+function clearLoginError() {
+  const el = document.getElementById('login-error');
+  el.textContent = ''; el.style.display = 'none';
+}
+function toggleAuthMode() {
+  _authMode = _authMode === 'signin' ? 'signup' : 'signin';
+  const btn  = document.getElementById('login-submit-btn');
+  const tog  = document.getElementById('login-mode-toggle');
+  const pwd  = document.getElementById('login-password');
+  if (_authMode === 'signup') {
+    btn.textContent = 'Create Account';
+    tog.innerHTML = 'Already have an account? <span>Sign in</span>';
+    pwd.placeholder = 'Password (min 6 characters)';
+    pwd.autocomplete = 'new-password';
+  } else {
+    btn.textContent = 'Sign In';
+    tog.innerHTML = 'No account? <span>Sign up</span>';
+    pwd.placeholder = 'Password';
+    pwd.autocomplete = 'current-password';
+  }
+  clearLoginError();
+}
+
+async function signInWithGoogle() {
+  if (!window._supabase) return alert('Supabase not configured — check server env vars');
+  clearLoginError();
+  const { error } = await window._supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) showLoginError(error.message);
+}
+
+async function signInWithEmail() {
+  if (!window._supabase) return alert('Supabase not configured — check server env vars');
+  clearLoginError();
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { showLoginError('Please enter email and password'); return; }
+  const btn = document.getElementById('login-submit-btn');
+  btn.disabled = true; btn.textContent = '…';
+  let error;
+  if (_authMode === 'signup') {
+    ({ error } = await window._supabase.auth.signUp({ email, password }));
+    if (!error) {
+      showLoginError('Check your email to confirm your account, then sign in.');
+      btn.disabled = false; btn.textContent = 'Create Account'; return;
+    }
+  } else {
+    ({ error } = await window._supabase.auth.signInWithPassword({ email, password }));
+  }
+  btn.disabled = false; btn.textContent = _authMode === 'signup' ? 'Create Account' : 'Sign In';
+  if (error) showLoginError(error.message);
+}
+
+async function signOut() {
+  if (!window._supabase) return;
+  await window._supabase.auth.signOut();
+}
+
+async function onSignedIn(session) {
+  S.user      = session.user;
+  S.authToken = session.access_token;
+  hideLoginOverlay();
+
+  // Update UI with user info
+  const email   = session.user.email || '';
+  const initial = email.charAt(0).toUpperCase() || '?';
+  document.getElementById('topbar-avatar').textContent  = initial;
+  document.getElementById('prof-avatar').textContent    = initial;
+  document.getElementById('prof-email').textContent     = email;
+  document.getElementById('user-pill-email').textContent = email;
+  document.getElementById('user-pill').style.display    = 'block';
+
+  // Check admin role
+  const { data: profile } = await window._supabase
+    .from('profiles').select('role, created_at').eq('id', session.user.id).single();
+  S.isAdmin = profile?.role === 'admin';
+  document.getElementById('nav-admin').style.display = S.isAdmin ? 'flex' : 'none';
+  const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+  document.getElementById('prof-meta').textContent = (S.isAdmin ? 'Admin' : 'Member') + (joinedDate ? ' · Since ' + joinedDate : '');
+
+  // Load history from Supabase
+  await loadHistory();
+  checkConnection(false);
+  updateDashboard();
+  window.history.replaceState({ view: 'dashboard' }, '');
+}
+
+function onSignedOut() {
+  S.user = null; S.authToken = null; S.isAdmin = false;
+  S.history = [];
+  document.getElementById('user-pill').style.display  = 'none';
+  document.getElementById('nav-admin').style.display  = 'none';
+  document.getElementById('topbar-avatar').textContent = '?';
+  showLoginOverlay();
+}
+
+// ── Admin panel ──────────────────────────────────────────────────────────────
+async function loadAdminData() {
+  if (!S.isAdmin || !window._supabase) return;
+  const sub = document.getElementById('admin-sub');
+  sub.textContent = 'Loading…';
+
+  const [{ data: profiles, error: pe }, { data: analyses, error: ae }] = await Promise.all([
+    window._supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+    window._supabase.from('analyses').select('id,user_id,type,pose,score,style,age_group,date').order('id', { ascending: false }),
+  ]);
+
+  if (pe || ae) { sub.textContent = 'Error loading data'; return; }
+
+  // Build map: user_id → count
+  const countMap = {};
+  (analyses || []).forEach(a => { countMap[a.user_id] = (countMap[a.user_id] || 0) + 1; });
+
+  sub.textContent = `${(profiles||[]).length} users · ${(analyses||[]).length} analyses`;
+
+  document.getElementById('admin-users-tbody').innerHTML = (profiles || []).map(p => `
+    <tr>
+      <td>${p.email || '—'}</td>
+      <td><span class="admin-badge" style="background:${p.role==='admin'?'var(--navy-pale)':'var(--green-light)'};color:${p.role==='admin'?'var(--navy)':'var(--green)'}">${p.role}</span></td>
+      <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>
+      <td>${countMap[p.id] || 0}</td>
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:24px">No users yet</td></tr>';
+
+  document.getElementById('admin-analyses-tbody').innerHTML = (analyses || []).map(a => `
+    <tr>
+      <td style="font-size:10px;color:var(--ink-soft);max-width:160px;overflow:hidden;text-overflow:ellipsis">${(profiles||[]).find(p=>p.id===a.user_id)?.email||a.user_id.slice(0,8)+'…'}</td>
+      <td><span class="admin-badge" style="background:${a.type==='solo'?'var(--blush-light)':'var(--green-light)'};color:${a.type==='solo'?'var(--blush-deep)':'var(--green)'}">${a.type}</span></td>
+      <td>${a.pose||'—'}</td>
+      <td>${a.score||'—'}</td>
+      <td>${a.style||'—'}</td>
+      <td>${a.date||'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">No analyses yet</td></tr>';
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+async function initApp() {
+  // Fetch Supabase config from server
+  try {
+    const r = await fetch('/api/supabase-config');
+    if (r.ok) {
+      const { url, anonKey } = await r.json();
+      window._supabase = supabase.createClient(url, anonKey);
+    } else {
+      console.warn('Supabase config not available:', await r.text());
+    }
+  } catch(e) {
+    console.warn('Could not fetch Supabase config:', e.message);
+  }
+
+  if (!window._supabase) {
+    // Supabase not configured — run app without auth (dev mode)
+    console.warn('Running without Supabase auth');
+    S.history = [];
+    checkConnection(false);
+    updateDashboard();
+    window.history.replaceState({ view: 'dashboard' }, '');
+    return;
+  }
+
+  // Listen for auth state changes
+  window._supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN'  && session) onSignedIn(session);
+    if (event === 'SIGNED_OUT')             onSignedOut();
+    if (event === 'TOKEN_REFRESHED' && session) S.authToken = session.access_token;
+  });
+
+  // Check if already signed in (e.g. returning from OAuth redirect)
+  const { data: { session } } = await window._supabase.auth.getSession();
+  if (session) {
+    await onSignedIn(session);
+  } else {
+    showLoginOverlay();
+  }
+}
+
+initApp();
 </script>
 </body>
 </html>

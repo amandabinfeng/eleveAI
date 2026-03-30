@@ -23,10 +23,46 @@ try {
   console.warn('⚠️  Gemini dependencies not installed — run npm install');
 }
 
-const app          = express();
-const PORT         = 3001;
-const GEMINI_KEY   = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const app               = express();
+const PORT              = 3001;
+const GEMINI_KEY        = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL      = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const SUPABASE_URL      = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SVC_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Supabase admin client for JWT verification
+let supabaseAdmin;
+try {
+  const { createClient } = require('@supabase/supabase-js');
+  if (SUPABASE_URL && SUPABASE_SVC_KEY) {
+    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SVC_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+  }
+} catch(e) {
+  console.warn('⚠️  @supabase/supabase-js not installed — run npm install');
+}
+
+// JWT verification middleware — 401 if token missing/invalid
+async function verifyAuth(req, res, next) {
+  if (!supabaseAdmin) {
+    // Supabase not configured — pass through (dev fallback)
+    console.warn('⚠️  Supabase not configured — skipping auth check');
+    return next();
+  }
+  const auth = req.headers['authorization'];
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing auth token' });
+  }
+  const token = auth.slice(7);
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+  req.user = user;
+  next();
+}
 
 
 app.use(cors());
@@ -74,9 +110,17 @@ app.get('/api/gemini-key', (_, res) => {
   res.json({ key: GEMINI_KEY });
 });
 
+// Expose Supabase public config to frontend (anon key is designed to be public)
+app.get('/api/supabase-config', (_, res) => {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return res.status(503).json({ error: 'Supabase not configured — add SUPABASE_URL and SUPABASE_ANON_KEY to environment secrets' });
+  }
+  res.json({ url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY });
+});
+
 // Gemini analysis by URI — browser uploads file directly to Gemini, sends us just the URI
 if (GoogleGenerativeAI) {
-  app.post('/api/gemini-analyze-uri', express.json({ limit: '1mb' }), async (req, res) => {
+  app.post('/api/gemini-analyze-uri', verifyAuth, express.json({ limit: '1mb' }), async (req, res) => {
     res.setHeader('Content-Type', 'application/x-ndjson');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('X-Accel-Buffering', 'no');
@@ -184,7 +228,7 @@ Return ONLY valid JSON (no markdown, no extra text):
   });
 
   // Progress comparison — receives two Gemini file URIs, compares both videos in one call
-  app.post('/api/gemini-compare-uri', express.json({ limit: '1mb' }), async (req, res) => {
+  app.post('/api/gemini-compare-uri', verifyAuth, express.json({ limit: '1mb' }), async (req, res) => {
     try {
       const {
         fileUri1, mimeType1 = 'video/mp4',
@@ -419,6 +463,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`│  App URL:  ${fwdUrl}/index.html`);
     console.log('│  (Codespaces will also show a popup — click "Open in Browser")  │');
     console.log(`│  Gemini API key:  ${GEMINI_KEY ? 'loaded ✓' : '⚠️  NOT SET — add GEMINI_API_KEY in Codespaces Secrets'}`);
+    console.log(`│  Supabase:        ${SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_SVC_KEY ? 'configured ✓' : '⚠️  NOT SET — add SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY'}`);
     console.log('└─────────────────────────────────────────────────────────────────┘\n');
   } else {
     console.log('\n┌──────────────────────────────────────────────────────┐');
