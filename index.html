@@ -270,6 +270,7 @@ input.field:focus{border-color:var(--navy)}
   .topbar-title{font-size:18px}
   .hero-card{flex-direction:column;align-items:flex-start;padding:20px;gap:0}
   .hero-card > div:last-child{display:none}
+  .hero-figures{display:none}
   .hero-title{font-size:22px}
   .hero-desc{font-size:11px;margin-bottom:12px}
   .dash-grid,.feat-grid{grid-template-columns:1fr;gap:10px;margin-bottom:16px}
@@ -445,6 +446,42 @@ input.field:focus{border-color:var(--navy)}
             <div class="hero-actions">
               <button class="btn btn-blush" onclick="showView('analysis',null)">Start Analysis →</button>
             </div>
+          </div>
+          <div class="hero-figures" style="flex-shrink:0;display:flex;gap:18px;align-items:flex-end;position:relative;z-index:1;opacity:.15">
+            <!-- Arabesque -->
+            <svg width="72" height="120" viewBox="0 0 40 68" fill="none">
+              <circle cx="20" cy="5" r="4" fill="#fff"/>
+              <line x1="20" y1="9" x2="20" y2="28" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M20 18 C14 16 9 15 5 16" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M20 18 C25 14 29 11 32 9" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="20" y1="28" x2="18" y2="44" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <line x1="18" y1="44" x2="17" y2="58" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <line x1="17" y1="58" x2="16" y2="65" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+              <line x1="20" y1="28" x2="22" y2="38" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M22 38 C28 42 34 46 38 50" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <!-- Pirouette (retiré) -->
+            <svg width="60" height="120" viewBox="0 0 36 68" fill="none">
+              <circle cx="18" cy="5" r="4" fill="#fff"/>
+              <line x1="18" y1="9" x2="18" y2="30" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M18 16 C12 14 8 12 5 10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 16 C23 13 27 11 30 10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="18" y1="30" x2="17" y2="46" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M18 30 C22 33 24 36 23 40" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <line x1="17" y1="46" x2="16" y2="60" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <line x1="16" y1="60" x2="15" y2="67" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <!-- Grand jeté -->
+            <svg width="88" height="120" viewBox="0 0 52 68" fill="none">
+              <circle cx="26" cy="7" r="4" fill="#fff"/>
+              <path d="M26 11 C25 16 24 20 24 24" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M24 24 C18 22 12 20 7 22" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M24 24 C30 21 36 19 41 21" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M24 24 C21 30 17 36 12 40" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M24 24 C28 30 33 36 38 38" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 40 C9 44 6 48 4 54" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M38 38 C40 42 43 46 45 50" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
           </div>
           <div style="flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;align-items:center;position:relative;z-index:1;min-height:160px">
             <svg width="160" height="160" viewBox="0 0 56 68" fill="none" style="opacity:.18">
