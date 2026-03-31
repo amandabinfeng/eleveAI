@@ -258,6 +258,28 @@ input.field:focus{border-color:var(--navy)}
   .frames-grid{grid-template-columns:repeat(3,1fr)}
   .cmp-scores{grid-template-columns:1fr 1fr}
   .content{padding:16px}
+  #prog-upload > div:nth-child(2){grid-template-columns:1fr !important}
+  #prog-upload > div:nth-child(3) .panel-body{display:flex !important;flex-direction:column;gap:10px}
+}
+@media(max-width:480px){
+  .sidebar{display:none}
+  #mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--navy);border-top:.5px solid rgba(255,255,255,.1);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .content{padding:12px;padding-bottom:72px}
+  .topbar{padding:0 14px;height:48px}
+  .topbar-sub{display:none}
+  .topbar-title{font-size:18px}
+  .hero-card{flex-direction:column;align-items:flex-start;padding:20px;gap:0}
+  .hero-card > div:last-child{display:none}
+  .hero-title{font-size:22px}
+  .hero-desc{font-size:11px;margin-bottom:12px}
+  .dash-grid,.feat-grid{grid-template-columns:1fr;gap:10px;margin-bottom:16px}
+  .drop-zone{padding:24px 16px}
+  .frames-grid{grid-template-columns:repeat(2,1fr)}
+  .feature-layout{grid-template-columns:1fr}
+  .panel-body{padding:14px 16px}
+  .panel-head{padding:14px 16px 12px}
+  .section-title{font-size:17px}
+  #mobile-signout-btn{display:block}
 }
 @media print {
   * { -webkit-print-color-adjust:exact; print-color-adjust:exact; box-sizing:border-box; }
@@ -316,6 +338,12 @@ input.field:focus{border-color:var(--navy)}
 .user-pill-email{font-size:10px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
 .btn-signout{display:block;width:100%;padding:6px 10px;background:rgba(255,255,255,.08);border:.5px solid rgba(255,255,255,.15);border-radius:8px;color:rgba(255,255,255,.65);font-size:11px;font-family:var(--font-sans);cursor:pointer;text-align:center;transition:all .15s}
 .btn-signout:hover{background:rgba(255,255,255,.14);color:#fff}
+/* ── Mobile bottom nav ── */
+#mobile-nav{display:none}
+.mob-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;flex:1;cursor:pointer;color:rgba(255,255,255,.5);font-size:10px;font-weight:400;transition:color .15s;-webkit-tap-highlight-color:transparent}
+.mob-nav-item svg{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mob-nav-item.active{color:#fff}
+.mob-nav-item.active svg{stroke:var(--blush)}
 </style>
 </head>
 <body>
@@ -398,6 +426,7 @@ input.field:focus{border-color:var(--navy)}
       </div>
       <div class="topbar-right">
         <div id="conn-status-bar" style="font-size:10px;color:var(--ink-soft)"></div>
+        <button id="mobile-signout-btn" onclick="signOut()" style="display:none;background:none;border:none;cursor:pointer;color:var(--ink-soft);padding:4px 6px;border-radius:6px" title="Sign out"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
         <div class="avatar" id="topbar-avatar">?</div>
       </div>
     </header>
@@ -746,6 +775,9 @@ input.field:focus{border-color:var(--navy)}
                 <div style="font-size:12px;font-weight:500;color:var(--ink);margin-bottom:12px">Analysis History</div>
                 <div class="history-list" id="profile-history"></div>
                 <div id="profile-empty" style="text-align:center;padding:24px;font-size:12px;color:var(--ink-soft)">No analyses yet. Upload your first video to get started.</div>
+                <div style="margin-top:16px;padding-top:14px;border-top:.5px solid var(--border)">
+                  <button class="btn btn-ghost btn-full" onclick="signOut()" style="color:var(--blush-deep);border-color:var(--blush);font-size:12px"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign Out</button>
+                </div>
               </div>
             </div>
           </div>
@@ -812,6 +844,26 @@ input.field:focus{border-color:var(--navy)}
   <div class="lightbox-hint">Click outside or press Esc to close · ← → to navigate</div>
 </div>
 
+<!-- ── Mobile bottom navigation (hidden on desktop, shown ≤480px) ── -->
+<nav id="mobile-nav">
+  <div class="mob-nav-item active" data-view="dashboard" onclick="showView('dashboard',this)">
+    <svg viewBox="0 0 24 24"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>
+    <span>Home</span>
+  </div>
+  <div class="mob-nav-item" data-view="analysis" onclick="showView('analysis',this)">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <span>Analysis</span>
+  </div>
+  <div class="mob-nav-item" data-view="progress" onclick="showView('progress',this)">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span>Progress</span>
+  </div>
+  <div class="mob-nav-item" data-view="profile" onclick="showView('profile',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span>Profile</span>
+  </div>
+</nav>
+
 <script>
 // ── Model ──────────────────────────────────────────────────────────────────
 const MODEL = 'gpt-4o';
@@ -844,10 +896,16 @@ function showView(id, navEl, skipPush) {
   document.querySelectorAll('video').forEach(v => { v.pause(); });
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.mob-nav-item').forEach(n => n.classList.remove('active'));
   const view = document.getElementById('view-' + id);
   if (view) view.classList.add('active');
-  if (navEl) navEl.classList.add('active');
-  else { const ni = document.querySelector(`[data-view="${id}"]`); if (ni) ni.classList.add('active'); }
+  if (navEl) {
+    navEl.classList.add('active');
+    // Also activate the counterpart nav item (sidebar ↔ mobile nav)
+    document.querySelectorAll(`[data-view="${id}"]`).forEach(ni => { if (ni !== navEl) ni.classList.add('active'); });
+  } else {
+    document.querySelectorAll(`[data-view="${id}"]`).forEach(ni => ni.classList.add('active'));
+  }
   const [title, sub] = viewTitles[id] || [id, ''];
   document.getElementById('topbar-title').textContent = title;
   document.getElementById('topbar-sub').textContent = sub;
@@ -2354,6 +2412,7 @@ async function onSignedIn(session) {
   document.getElementById('prof-email').textContent     = email;
   document.getElementById('user-pill-email').textContent = email;
   document.getElementById('user-pill').style.display    = 'block';
+  const _msb = document.getElementById('mobile-signout-btn'); if (_msb) _msb.style.display = '';
 
   // Check admin role
   const { data: profile } = await window._supabase
@@ -2374,6 +2433,7 @@ function onSignedOut() {
   S.user = null; S.authToken = null; S.isAdmin = false;
   S.history = [];
   document.getElementById('user-pill').style.display  = 'none';
+  const _msb2 = document.getElementById('mobile-signout-btn'); if (_msb2) _msb2.style.display = 'none';
   document.getElementById('nav-admin').style.display  = 'none';
   document.getElementById('topbar-avatar').textContent = '?';
   showLoginOverlay();
