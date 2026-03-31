@@ -559,8 +559,7 @@ input.field:focus{border-color:var(--navy)}
                     <label class="field-label">Ballet style</label>
                     <div class="style-row" id="style-row">
                       <div class="style-chip sel" onclick="setStyle('Classical',this)">Classical</div>
-                      <div class="style-chip" onclick="setStyle('Contemporary',this)">Contemporary</div>
-                      <div class="style-chip" onclick="setStyle('Neoclassical',this)">Neoclassical</div>
+                      <div class="style-chip" style="opacity:.38;cursor:not-allowed;pointer-events:none" title="Contemporary scoring criteria coming soon">Contemporary</div>
                     </div>
                   </div>
                   <div style="margin-bottom:12px">
@@ -734,7 +733,7 @@ input.field:focus{border-color:var(--navy)}
             <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
               <div><label class="field-label">Variation name</label><input type="text" class="field" id="prog-variation" placeholder="e.g. Talisman" style="margin-bottom:0"/></div>
               <div><label class="field-label">Age group</label><select class="field" id="prog-age-group" style="margin-bottom:0"><option value="Pre-competitive">Pre-competitive</option><option value="Junior" selected>Junior</option><option value="Senior">Senior</option></select></div>
-              <div><label class="field-label">Style</label><select class="field" id="prog-style" style="margin-bottom:0"><option value="Classical">Classical</option><option value="Contemporary">Contemporary</option><option value="Character">Character</option><option value="Neoclassical">Neoclassical</option></select></div>
+              <div><label class="field-label">Style</label><select class="field" id="prog-style" style="margin-bottom:0"><option value="Classical">Classical</option><option value="Contemporary" disabled>Contemporary (coming soon)</option><option value="Character">Character</option></select></div>
             </div>
           </div>
           <button class="btn btn-primary btn-full" id="prog-submit-btn" onclick="startProgress()" disabled>Compare Performances →</button>
