@@ -818,7 +818,7 @@ input.field:focus{border-color:var(--navy)}
             </div>
           </div>
           <div>
-            <div class="panel">
+            <div class="panel" id="settings-panel" style="display:none">
               <div class="panel-head"><div class="panel-title">Settings</div></div>
               <div class="panel-body" style="display:flex;flex-direction:column;gap:14px">
                 <div>
@@ -2455,6 +2455,7 @@ async function onSignedIn(session) {
     .from('profiles').select('role, created_at').eq('id', session.user.id).single();
   S.isAdmin = profile?.role === 'admin';
   document.getElementById('nav-admin').style.display = S.isAdmin ? 'flex' : 'none';
+  document.getElementById('settings-panel').style.display = S.isAdmin ? 'block' : 'none';
   const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
   document.getElementById('prof-meta').textContent = (S.isAdmin ? 'Admin' : 'Member') + (joinedDate ? ' · Since ' + joinedDate : '');
 
@@ -2471,6 +2472,7 @@ function onSignedOut() {
   document.getElementById('user-pill').style.display  = 'none';
   const _msb2 = document.getElementById('mobile-signout-btn'); if (_msb2) _msb2.style.display = 'none';
   document.getElementById('nav-admin').style.display  = 'none';
+  document.getElementById('settings-panel').style.display = 'none';
   document.getElementById('topbar-avatar').textContent = '?';
   showLoginOverlay();
 }
