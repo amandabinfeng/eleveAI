@@ -89,7 +89,61 @@ CREATE POLICY "admins_read_all_analyses"
   );
 
 
--- ── 4. Grant yourself admin role ────────────────────────────────────────────
+-- ── 4. App settings table (global config editable by admin) ────────────────
+-- Stores key-value pairs like default_quota. Server reads this at runtime.
+
+CREATE TABLE IF NOT EXISTS settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed the default quota (5 free analyses per user)
+INSERT INTO settings (key, value) VALUES ('default_quota', '5')
+  ON CONFLICT (key) DO NOTHING;
+
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+
+-- Service role (used by server.js) bypasses RLS automatically.
+-- Admins can read settings via browser client if needed.
+CREATE POLICY "admins_read_settings"
+  ON settings FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+
+-- ── 5. Per-user monthly quota ───────────────────────────────────────────────
+-- Adds an optional per-user quota override column to profiles.
+-- NULL = use server default (DEFAULT_MONTHLY_QUOTA in server.js, currently 10).
+-- Run this once if you already have the profiles table from the script above.
+
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS monthly_quota INT DEFAULT NULL;
+
+-- Tracks when the last quota-exceeded notification was sent for this user.
+-- Prevents duplicate admin emails when the user retries repeatedly.
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS quota_notified_at TIMESTAMPTZ DEFAULT NULL;
+
+-- Admins can UPDATE profiles (needed for set-quota endpoints)
+CREATE POLICY "admins_update_profiles"
+  ON profiles FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+-- Also allow the service role to update any profile (used by server-side admin endpoints)
+-- This is handled automatically by the service role key bypassing RLS.
+
+
+-- ── 5. Grant yourself admin role ────────────────────────────────────────────
 -- After running this script and signing in for the first time, run:
 --
 --   UPDATE profiles SET role = 'admin' WHERE email = 'your@email.com';

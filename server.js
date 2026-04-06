@@ -14,6 +14,9 @@ try {
   process.exit(1);
 }
 
+let nodemailer;
+try { nodemailer = require('nodemailer'); } catch(e) { console.warn('⚠️  nodemailer not installed — run npm install'); }
+
 let multer, GoogleGenerativeAI, GoogleAIFileManager;
 try {
   multer = require('multer');
@@ -27,6 +30,10 @@ const app               = express();
 const PORT              = 3001;
 const GEMINI_KEY        = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL      = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const FALLBACK_QUOTA    = 5;   // used only if DB is unreachable
+const GMAIL_USER        = process.env.GMAIL_USER        || 'eleveaicontact@gmail.com';
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD; // 16-char app password from Google
+const ADMIN_EMAIL       = 'eleveaicontact@gmail.com';
 const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SVC_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -42,6 +49,61 @@ try {
   }
 } catch(e) {
   console.warn('⚠️  @supabase/supabase-js not installed — run npm install');
+}
+
+// Global default quota — read from Supabase settings table, cached for 60s
+let _quotaCache = { value: FALLBACK_QUOTA, expiresAt: 0 };
+async function getDefaultQuota() {
+  if (Date.now() < _quotaCache.expiresAt) return _quotaCache.value;
+  if (!supabaseAdmin) return FALLBACK_QUOTA;
+  try {
+    const { data } = await supabaseAdmin.from('settings').select('value').eq('key', 'default_quota').single();
+    const val = data ? parseInt(data.value, 10) : FALLBACK_QUOTA;
+    _quotaCache = { value: isNaN(val) ? FALLBACK_QUOTA : val, expiresAt: Date.now() + 60_000 };
+    return _quotaCache.value;
+  } catch(e) {
+    console.warn('getDefaultQuota error:', e.message);
+    return FALLBACK_QUOTA;
+  }
+}
+
+// Send quota-exceeded notification email to admin via Gmail SMTP (nodemailer).
+// Only fires once per 24 h per user to prevent duplicate emails on retries.
+async function notifyAdminQuotaExceeded(userId, userEmail, quota) {
+  if (!supabaseAdmin || !nodemailer || !GMAIL_APP_PASSWORD) {
+    console.log(`[quota] ${userEmail} hit limit (${quota}) — email skipped (GMAIL_APP_PASSWORD not set)`);
+    return;
+  }
+  try {
+    // Check last notification timestamp — skip if sent within last 24 h
+    const { data: profile } = await supabaseAdmin
+      .from('profiles').select('quota_notified_at').eq('id', userId).single();
+    const last = profile?.quota_notified_at ? new Date(profile.quota_notified_at).getTime() : 0;
+    if (Date.now() - last < 24 * 60 * 60 * 1000) return;
+
+    // Mark as notified before sending (prevents duplicate sends on concurrent retries)
+    await supabaseAdmin.from('profiles')
+      .update({ quota_notified_at: new Date().toISOString() }).eq('id', userId);
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    });
+
+    await transporter.sendMail({
+      from:    `"Élevé AI" <${GMAIL_USER}>`,
+      to:      ADMIN_EMAIL,
+      subject: `[Élevé AI] User reached quota — ${userEmail}`,
+      text:    `User ${userEmail} has reached their monthly analysis limit of ${quota}.\n\nTo give them more access, log in to the Admin Panel and use "Set Limit" on their row.`,
+      html:    `<p>Hi,</p>
+                <p>User <strong>${userEmail}</strong> has reached their monthly analysis limit of <strong>${quota}</strong>.</p>
+                <p>To give them more access, log in to the <strong>Admin Panel</strong> and use <em>Set Limit</em> on their row.</p>
+                <p>— Élevé AI</p>`,
+    });
+    console.log(`[quota] Admin notified: ${userEmail} hit limit (${quota})`);
+  } catch(e) {
+    console.warn('[quota] notifyAdmin error:', e.message);
+  }
 }
 
 // JWT verification middleware — 401 if token missing/invalid
@@ -62,6 +124,48 @@ async function verifyAuth(req, res, next) {
   }
   req.user = user;
   next();
+}
+
+// Quota middleware — checks monthly usage BEFORE calling Gemini (cost = 1 per call)
+function checkQuota(cost = 1) {
+  return async function(req, res, next) {
+    if (!supabaseAdmin) return next(); // dev fallback: Supabase not configured
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+    // Read per-user override; fall back to global default from settings table
+    const { data: profile } = await supabaseAdmin
+      .from('profiles').select('monthly_quota').eq('id', userId).single();
+    const defaultQuota = await getDefaultQuota();
+    const quota = profile?.monthly_quota ?? defaultQuota;
+
+    const now        = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+    const { count, error: countErr } = await supabaseAdmin
+      .from('analyses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', monthStart)
+      .lt('created_at', monthEnd);
+
+    if (countErr) {
+      console.error('checkQuota count error:', countErr.message);
+      return res.status(500).json({ error: 'Could not verify quota' });
+    }
+    const used = count ?? 0;
+    if (used + cost > quota) {
+      // Notify admin async — does not delay the 429 response
+      notifyAdminQuotaExceeded(userId, req.user.email || userId, quota);
+      return res.status(429).json({
+        error:     'quota_exceeded',
+        message:   `Monthly limit reached (${quota} analyses). Contact us at eleveaicontact@gmail.com to increase your limit.`,
+        used, quota, remaining: Math.max(0, quota - used),
+      });
+    }
+    req.quota = { used, quota, remaining: quota - used };
+    next();
+  };
 }
 
 
@@ -118,9 +222,125 @@ app.get('/api/supabase-config', (_, res) => {
   res.json({ url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY });
 });
 
-// Gemini analysis by URI — browser uploads file directly to Gemini, sends us just the URI
+// ── Quota & Admin endpoints ───────────────────────────────────────────────────
+
+// User: fetch own quota status for this calendar month
+app.get('/api/quota-status', verifyAuth, async (req, res) => {
+  if (!supabaseAdmin) return res.json({ used: 0, quota: DEFAULT_MONTHLY_QUOTA, remaining: DEFAULT_MONTHLY_QUOTA });
+  const userId = req.user.id;
+  const { data: profile } = await supabaseAdmin.from('profiles').select('monthly_quota').eq('id', userId).single();
+  const quota = profile?.monthly_quota ?? DEFAULT_MONTHLY_QUOTA;
+  const now        = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+  const { count }  = await supabaseAdmin.from('analyses')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId).gte('created_at', monthStart).lt('created_at', monthEnd);
+  const used = count ?? 0;
+  res.json({ used, quota, remaining: quota - used });
+});
+
+// Admin: per-user monthly usage stats for invoicing
+app.get('/api/admin/usage', verifyAuth, async (req, res) => {
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase not configured' });
+  const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
+  if (caller?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+
+  const now        = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+  const month      = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const [{ data: profiles }, { data: monthlyRows }, { data: allRows }] = await Promise.all([
+    supabaseAdmin.from('profiles').select('id,email,role,monthly_quota,created_at').order('created_at'),
+    supabaseAdmin.from('analyses').select('user_id,type').gte('created_at', monthStart).lt('created_at', monthEnd),
+    supabaseAdmin.from('analyses').select('user_id'),
+  ]);
+
+  const monthMap = {}, soloMap = {}, progMap = {}, allMap = {};
+  (monthlyRows || []).forEach(a => {
+    monthMap[a.user_id] = (monthMap[a.user_id] || 0) + 1;
+    if (a.type === 'solo')     soloMap[a.user_id] = (soloMap[a.user_id] || 0) + 1;
+    if (a.type === 'progress') progMap[a.user_id]  = (progMap[a.user_id]  || 0) + 1;
+  });
+  (allRows || []).forEach(a => { allMap[a.user_id] = (allMap[a.user_id] || 0) + 1; });
+
+  res.json({
+    month, defaultQuota: DEFAULT_MONTHLY_QUOTA,
+    users: (profiles || []).map(p => ({
+      id: p.id, email: p.email, role: p.role,
+      quota:          p.monthly_quota ?? DEFAULT_MONTHLY_QUOTA,
+      quotaOverride:  p.monthly_quota !== null,
+      thisMonth:      monthMap[p.id] || 0,
+      soloThisMonth:  soloMap[p.id]  || 0,
+      progressThisMonth: progMap[p.id] || 0,
+      allTime:        allMap[p.id]   || 0,
+      joined:         p.created_at,
+    })),
+  });
+});
+
+// Admin: set one user's monthly quota (null = revert to server default)
+app.post('/api/admin/set-quota', verifyAuth, express.json({ limit: '1kb' }), async (req, res) => {
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase not configured' });
+  const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
+  if (caller?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { targetUserId, quota } = req.body;
+  if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+  if (quota !== null && (typeof quota !== 'number' || quota < 0))
+    return res.status(400).json({ error: 'quota must be a non-negative integer or null' });
+  const { error } = await supabaseAdmin.from('profiles').update({ monthly_quota: quota }).eq('id', targetUserId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// Admin: bulk reset — set monthly_quota for ALL non-admin users at once
+app.post('/api/admin/set-quota-all', verifyAuth, express.json({ limit: '1kb' }), async (req, res) => {
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase not configured' });
+  const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
+  if (caller?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { quota } = req.body;
+  if (typeof quota !== 'number' || quota < 0)
+    return res.status(400).json({ error: 'quota must be a non-negative integer' });
+  const { error, count } = await supabaseAdmin
+    .from('profiles').update({ monthly_quota: quota }).neq('role', 'admin');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true, updatedCount: count });
+});
+
+// Admin: read current global settings (default_quota, etc.)
+app.get('/api/admin/settings', verifyAuth, async (req, res) => {
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase not configured' });
+  const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
+  if (caller?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { data, error } = await supabaseAdmin.from('settings').select('key,value');
+  if (error) return res.status(500).json({ error: error.message });
+  const obj = {};
+  (data || []).forEach(r => { obj[r.key] = r.value; });
+  res.json(obj);
+});
+
+// Admin: update the global default quota for all new / uncustomised users
+app.post('/api/admin/set-default-quota', verifyAuth, express.json({ limit: '1kb' }), async (req, res) => {
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase not configured' });
+  const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
+  if (caller?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const { quota } = req.body;
+  if (typeof quota !== 'number' || quota < 0)
+    return res.status(400).json({ error: 'quota must be a non-negative integer' });
+  const { error } = await supabaseAdmin
+    .from('settings')
+    .upsert({ key: 'default_quota', value: String(quota), updated_at: new Date().toISOString() });
+  if (error) return res.status(500).json({ error: error.message });
+  // Bust the in-memory cache so next quota check picks up the new value immediately
+  _quotaCache.expiresAt = 0;
+  console.log(`[admin] Default quota updated to ${quota}`);
+  res.json({ ok: true, defaultQuota: quota });
+});
+
+// ── Gemini analysis by URI — browser uploads file directly to Gemini, sends us just the URI
 if (GoogleGenerativeAI) {
-  app.post('/api/gemini-analyze-uri', verifyAuth, express.json({ limit: '1mb' }), async (req, res) => {
+  app.post('/api/gemini-analyze-uri', verifyAuth, checkQuota(1), express.json({ limit: '1mb' }), async (req, res) => {
     res.setHeader('Content-Type', 'application/x-ndjson');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('X-Accel-Buffering', 'no');
@@ -228,7 +448,7 @@ Return ONLY valid JSON (no markdown, no extra text):
   });
 
   // Progress comparison — receives two Gemini file URIs, compares both videos in one call
-  app.post('/api/gemini-compare-uri', verifyAuth, express.json({ limit: '1mb' }), async (req, res) => {
+  app.post('/api/gemini-compare-uri', verifyAuth, checkQuota(1), express.json({ limit: '1mb' }), async (req, res) => {
     try {
       const {
         fileUri1, mimeType1 = 'video/mp4',

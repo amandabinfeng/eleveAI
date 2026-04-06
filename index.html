@@ -328,6 +328,9 @@ input.field:focus{border-color:var(--navy)}
 .login-toggle:hover{color:rgba(255,255,255,.75)}
 .login-toggle span{text-decoration:underline}
 .login-error{background:rgba(196,96,108,.2);border:.5px solid var(--blush);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--blush-light);margin-bottom:10px;display:none}
+.login-disclaimers{margin-top:20px;padding-top:16px;border-top:.5px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:8px;text-align:left}
+.login-disclaimer{font-size:10px;color:rgba(255,255,255,.35);line-height:1.6}
+.login-disclaimer strong{color:rgba(255,255,255,.55);font-weight:500}
 /* ── Admin table ── */
 .admin-table{width:100%;border-collapse:collapse;font-size:12px}
 .admin-table th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);padding:8px 12px;border-bottom:.5px solid var(--border);text-align:left;font-weight:500}
@@ -369,6 +372,11 @@ input.field:focus{border-color:var(--navy)}
       <div class="login-toggle" id="login-mode-toggle" onclick="toggleAuthMode()">
         No account? <span>Sign up</span>
       </div>
+    </div>
+    <div class="login-disclaimers">
+      <p class="login-disclaimer"><strong>AI analysis may not be fully accurate.</strong> Élevé AI uses artificial intelligence to analyse ballet technique, which can make errors or miss nuances. Always review feedback with a qualified ballet instructor before making changes to your training.</p>
+      <p class="login-disclaimer"><strong>You are responsible for the videos you upload.</strong> By uploading a video, you confirm that you own it or have the necessary rights and permissions to share it. Please do not upload videos of others without their consent.</p>
+      <p class="login-disclaimer">Questions? <a href="mailto:eleveaicontact@gmail.com" style="color:rgba(255,255,255,.5);text-decoration:underline">eleveaicontact@gmail.com</a></p>
     </div>
   </div>
 </div>
@@ -496,6 +504,11 @@ input.field:focus{border-color:var(--navy)}
             </svg>
             <div class="hero-desc" style="margin-bottom:0;text-align:left;max-width:280px;font-style:normal;color:#fff">AI insights complement your coach — share these reports with your instructor to build the most effective improvement plan.</div>
           </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;padding:14px 18px;background:var(--white);border-radius:12px;border:.5px solid var(--border)">
+          <p style="font-size:11px;color:var(--ink-soft);line-height:1.6"><strong style="color:var(--ink-mid)">AI analysis may not be fully accurate.</strong> Élevé AI uses artificial intelligence to analyse ballet technique, which can make errors or miss nuances. Always review feedback with a qualified ballet instructor before making changes to your training.</p>
+          <p style="font-size:11px;color:var(--ink-soft);line-height:1.6"><strong style="color:var(--ink-mid)">You are responsible for the videos you upload.</strong> By uploading a video, you confirm that you own it or have the necessary rights and permissions to share it. Please do not upload videos of others without their consent.</p>
+          <p style="font-size:11px;color:var(--ink-soft)">Questions? <a href="mailto:eleveaicontact@gmail.com" style="color:var(--ink-soft);text-decoration:underline">eleveaicontact@gmail.com</a></p>
         </div>
         <div class="dash-grid">
           <div class="stat-card"><div class="stat-label">Total Analyses</div><div class="stat-val" id="stat-total">0</div><div class="stat-delta" id="stat-delta">Upload your first video</div></div>
@@ -805,9 +818,14 @@ input.field:focus{border-color:var(--navy)}
                 <div style="margin-left:auto;display:flex;gap:24px">
                   <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:#fff;font-weight:600" id="prof-total">0</div><div style="font-size:9px;color:var(--navy-muted)">Analyses</div></div>
                   <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:var(--blush);font-weight:600" id="prof-best">—</div><div style="font-size:9px;color:var(--navy-muted)">Best Score</div></div>
+                  <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:var(--gold);font-weight:600" id="prof-quota-remaining">—</div><div style="font-size:9px;color:var(--navy-muted)" id="prof-quota-label">This Month</div></div>
                 </div>
               </div>
               <div class="panel-body">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:8px;border:.5px solid var(--border)">
+                  <span style="font-size:11px;color:var(--ink-soft)" id="quota-used-text">Loading quota…</span>
+                  <span style="font-size:11px;font-weight:500" id="quota-status-chip"></span>
+                </div>
                 <div style="font-size:12px;font-weight:500;color:var(--ink);margin-bottom:12px">Analysis History</div>
                 <div class="history-list" id="profile-history"></div>
                 <div id="profile-empty" style="text-align:center;padding:24px;font-size:12px;color:var(--ink-soft)">No analyses yet. Upload your first video to get started.</div>
@@ -836,16 +854,36 @@ input.field:focus{border-color:var(--navy)}
       <!-- ── Admin Panel ── -->
       <div class="view" id="view-admin">
         <div class="section-hdr"><div class="section-title">Admin Panel</div><div class="section-sub" id="admin-sub"></div></div>
+        <!-- Global default quota control -->
         <div class="panel" style="margin-bottom:20px">
-          <div class="panel-head" style="justify-content:space-between">
+          <div class="panel-head"><div class="panel-title">Global Default Quota</div></div>
+          <div class="panel-body" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="font-size:12px;color:var(--ink-soft);flex:1;min-width:200px">Free analyses every new user gets per month. Users with a custom limit are unaffected.</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="number" id="default-quota-input" min="0" max="999" style="width:70px;padding:7px 10px;border:.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-sans);color:var(--ink);background:var(--white);outline:none" placeholder="5"/>
+              <button class="btn btn-primary" style="font-size:12px;padding:7px 14px" onclick="adminSetDefaultQuota()">Update</button>
+            </div>
+          </div>
+        </div>
+        <!-- Monthly summary callout -->
+        <div id="monthly-summary-panel" style="display:none;margin-bottom:20px;padding:16px 20px;background:var(--white);border-radius:16px;border:.5px solid var(--border)">
+          <div style="font-size:11px;font-weight:500;color:var(--navy);margin-bottom:12px" id="monthly-summary-title"></div>
+          <div style="display:flex;gap:32px;flex-wrap:wrap" id="monthly-summary-stats"></div>
+        </div>
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-head" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div class="panel-title">All Users</div>
-            <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="loadAdminData()">Refresh</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="adminSetQuotaAll()">Set Limit: All Users</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="exportUsageCSV()">Export CSV</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="loadAdminData()">Refresh</button>
+            </div>
           </div>
           <div class="panel-body" style="padding:0">
             <div id="admin-users-wrap" style="overflow-x:auto">
               <table class="admin-table">
-                <thead><tr><th>Email</th><th>Role</th><th>Joined</th><th>Analyses</th></tr></thead>
-                <tbody id="admin-users-tbody"><tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:24px">Loading…</td></tr></tbody>
+                <thead><tr><th>Email</th><th>Role</th><th>Joined</th><th>This Month</th><th>Solo / Progress</th><th>Quota</th><th>All Time</th><th>Actions</th></tr></thead>
+                <tbody id="admin-users-tbody"><tr><td colspan="8" style="text-align:center;color:var(--ink-soft);padding:24px">Loading…</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -917,7 +955,10 @@ const S = {
   mediapipeReady: false, pose: null,
   // Auth
   user: null, isAdmin: false, authToken: null,
+  // Quota (refreshed after sign-in and after each analysis)
+  quotaUsed: 0, quotaTotal: 10, quotaRemaining: 10,
 };
+let DEFAULT_MONTHLY_QUOTA_DISPLAY = 5; // updated from server on admin panel load
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 const viewTitles = {
@@ -1411,6 +1452,16 @@ function setProc(barId, pctId, labelId, pct, label) {
 function showError(containerId, msg) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  // Quota exceeded — friendly dedicated message
+  if (msg && msg.startsWith('__quota__:')) {
+    el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
+      <div class="banner-title">Monthly analysis limit reached</div>
+      <p>${msg.slice(10)}</p>
+      <p style="margin-top:8px;font-size:11px;opacity:.8">Your video is still loaded — you can try again next month, or contact <a href="mailto:eleveaicontact@gmail.com" style="color:inherit">eleveaicontact@gmail.com</a> to increase your limit.</p>
+    </div>`;
+    refreshQuotaStatus();
+    return;
+  }
   const is503 = msg && (msg.includes('503') || msg.includes('high demand') || msg.includes('Service Unavailable'));
   const isNetwork = msg && (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch'));
   const title = is503 ? 'AI model temporarily unavailable' : 'Error';
@@ -1482,6 +1533,7 @@ async function startAnalysis() {
     const _histItem1 = { id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||report.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:usedThumbs[0], thumbs:usedThumbs, date:new Date().toLocaleDateString(), report };
     S.history.push(_histItem1);
     saveNewHistoryItem(_histItem1);
+    refreshQuotaStatus();
     renderAnalysisReport(report, usedThumbs);
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-report').style.display = 'block';
@@ -1561,7 +1613,11 @@ async function startGeminiAnalysis() {
       headers: { 'Content-Type': 'application/json', ...(S.authToken ? { 'Authorization': 'Bearer ' + S.authToken } : {}) },
       body: JSON.stringify({ fileUri, mimeType, style, desc, ageGroup })
     });
-    if (!resp.ok) { const t = await resp.text(); throw new Error(`Server error ${resp.status}: ${t.slice(0,200)}`); }
+    if (!resp.ok) {
+      const t = await resp.text();
+      if (resp.status === 429) { const d = JSON.parse(t||'{}'); throw new Error('__quota__:' + (d.message || 'Monthly limit reached.')); }
+      throw new Error(`Server error ${resp.status}: ${t.slice(0,200)}`);
+    }
 
     // Read streaming NDJSON response
     const reader  = resp.body.getReader();
@@ -1598,6 +1654,7 @@ async function startGeminiAnalysis() {
     const _histItem2 = { id:Date.now(), type:'solo', pose:cap(document.getElementById('analysis-variation')?.value?.trim()||result.pose||'Performance'), score:overallScore, style:S.style, ageGroup:S.ageGroup, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), report:result };
     S.history.push(_histItem2);
     saveNewHistoryItem(_histItem2);
+    refreshQuotaStatus();
     renderAnalysisReport(result, [], S.usedFallback);
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-report').style.display = 'block';
@@ -1874,7 +1931,11 @@ async function startProgress() {
       headers: { 'Content-Type': 'application/json', ...(S.authToken ? { 'Authorization': 'Bearer ' + S.authToken } : {}) },
       body: JSON.stringify({ fileUri1: uri1, mimeType1: mt1, fileUri2: uri2, mimeType2: mt2, context1, context2, ageGroup, style, variationName })
     });
-    if (!compareResp.ok) { const t = await compareResp.text(); throw new Error(`Server error ${compareResp.status}: ${t.slice(0,200)}`); }
+    if (!compareResp.ok) {
+      const t = await compareResp.text();
+      if (compareResp.status === 429) { const d = JSON.parse(t||'{}'); throw new Error('__quota__:' + (d.message || 'Monthly limit reached.')); }
+      throw new Error(`Server error ${compareResp.status}: ${t.slice(0,200)}`);
+    }
     const compareData = await compareResp.json();
     if (compareData.error) throw new Error(compareData.error);
     const result = compareData.result;
@@ -1889,6 +1950,7 @@ async function startProgress() {
     const _histItem3 = { id:Date.now(), type:'progress', pose:cap(variationName||'Progress Check'), score:overallRecent, thumb:'', thumbs:[], date:new Date().toLocaleDateString(), progResult:result };
     S.history.push(_histItem3);
     saveNewHistoryItem(_histItem3);
+    refreshQuotaStatus();
     S.lastProgResult = result;
     renderProgressResults(result);
     document.getElementById('prog-processing').style.display = 'none';
@@ -2153,6 +2215,31 @@ function saveNewHistoryItem(item) {
   };
   window._supabase.from('analyses').upsert(row)
     .then(({ error }) => { if (error) console.warn('Supabase save error:', error.message); });
+}
+
+// ── Quota status ──────────────────────────────────────────────────────────────
+async function refreshQuotaStatus() {
+  if (!S.authToken) return;
+  try {
+    const resp = await fetch('/api/quota-status', { headers: { 'Authorization': 'Bearer ' + S.authToken } });
+    if (!resp.ok) return;
+    const { used, quota, remaining } = await resp.json();
+    S.quotaUsed = used; S.quotaTotal = quota; S.quotaRemaining = remaining;
+
+    const remEl  = document.getElementById('prof-quota-remaining');
+    const lblEl  = document.getElementById('prof-quota-label');
+    const usedEl = document.getElementById('quota-used-text');
+    const chipEl = document.getElementById('quota-status-chip');
+    if (remEl)  remEl.textContent  = remaining;
+    if (lblEl)  lblEl.textContent  = `Remaining (${quota}/mo)`;
+    if (usedEl) usedEl.textContent = `${used} of ${quota} analyses used this month`;
+    if (chipEl) {
+      const pct = quota > 0 ? used / quota : 1;
+      if (remaining <= 0)    { chipEl.textContent = 'Limit reached'; chipEl.style.color = 'var(--blush-deep)'; }
+      else if (pct >= 0.8)   { chipEl.textContent = `${remaining} left`; chipEl.style.color = 'var(--gold-dark)'; }
+      else                   { chipEl.textContent = `${remaining} remaining`; chipEl.style.color = 'var(--green)'; }
+    }
+  } catch(e) { console.warn('refreshQuotaStatus:', e.message); }
 }
 
 async function loadHistory() {
@@ -2463,6 +2550,7 @@ async function onSignedIn(session) {
   await loadHistory();
   checkConnection(false);
   updateDashboard();
+  refreshQuotaStatus();
   window.history.replaceState({ view: 'dashboard' }, '');
 }
 
@@ -2479,40 +2567,149 @@ function onSignedOut() {
 
 // ── Admin panel ──────────────────────────────────────────────────────────────
 async function loadAdminData() {
-  if (!S.isAdmin || !window._supabase) return;
+  if (!S.isAdmin) return;
   const sub = document.getElementById('admin-sub');
   sub.textContent = 'Loading…';
 
-  const [{ data: profiles, error: pe }, { data: analyses, error: ae }] = await Promise.all([
-    window._supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+  // Use the server-side usage endpoint for accurate monthly breakdown
+  const [usageResp, settingsResp, { data: analyses, error: ae }] = await Promise.all([
+    fetch('/api/admin/usage',    { headers: { 'Authorization': 'Bearer ' + S.authToken } }),
+    fetch('/api/admin/settings', { headers: { 'Authorization': 'Bearer ' + S.authToken } }),
     window._supabase.from('analyses').select('id,user_id,type,pose,score,style,age_group,date').order('id', { ascending: false }),
   ]);
 
-  if (pe || ae) { sub.textContent = 'Error loading data'; return; }
+  if (!usageResp.ok || ae) { sub.textContent = 'Error loading data'; return; }
+  const usage    = await usageResp.json();
+  const settings = settingsResp.ok ? await settingsResp.json() : {};
 
-  // Build map: user_id → count
-  const countMap = {};
-  (analyses || []).forEach(a => { countMap[a.user_id] = (countMap[a.user_id] || 0) + 1; });
+  // Populate the default quota input and update the in-memory display constant
+  const currentDefault = parseInt(settings.default_quota || '5', 10);
+  DEFAULT_MONTHLY_QUOTA_DISPLAY = currentDefault;
+  const dqInput = document.getElementById('default-quota-input');
+  if (dqInput) dqInput.value = currentDefault;
 
-  sub.textContent = `${(profiles||[]).length} users · ${(analyses||[]).length} analyses`;
+  sub.textContent = `${usage.users.length} users · ${usage.month}`;
 
-  document.getElementById('admin-users-tbody').innerHTML = (profiles || []).map(p => `
-    <tr>
-      <td>${p.email || '—'}</td>
-      <td><span class="admin-badge" style="background:${p.role==='admin'?'var(--navy-pale)':'var(--green-light)'};color:${p.role==='admin'?'var(--navy)':'var(--green)'}">${p.role}</span></td>
-      <td>${p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>
-      <td>${countMap[p.id] || 0}</td>
-    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:24px">No users yet</td></tr>';
+  // Monthly summary callout
+  const totalThisMonth = usage.users.reduce((s, u) => s + u.thisMonth, 0);
+  const activeUsers    = usage.users.filter(u => u.thisMonth > 0).length;
+  const overQuota      = usage.users.filter(u => u.thisMonth >= u.quota).length;
+  const summaryPanel   = document.getElementById('monthly-summary-panel');
+  summaryPanel.style.display = 'block';
+  document.getElementById('monthly-summary-title').textContent = `${usage.month} — Usage Summary`;
+  document.getElementById('monthly-summary-stats').innerHTML = [
+    `<div><div style="font-family:var(--font-serif);font-size:22px;color:var(--navy);font-weight:600">${totalThisMonth}</div><div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em">Total Analyses</div></div>`,
+    `<div><div style="font-family:var(--font-serif);font-size:22px;color:var(--navy);font-weight:600">${activeUsers}</div><div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em">Active Users</div></div>`,
+    `<div><div style="font-family:var(--font-serif);font-size:22px;color:${overQuota > 0 ? 'var(--blush-deep)' : 'var(--green)'};font-weight:600">${overQuota}</div><div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em">At Limit</div></div>`,
+    `<div><div style="font-family:var(--font-serif);font-size:22px;color:var(--navy);font-weight:600">${usage.defaultQuota}</div><div style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em">Default Quota</div></div>`,
+  ].join('');
 
+  // Users table with monthly usage, quota, progress bar, and Set Limit action
+  document.getElementById('admin-users-tbody').innerHTML = usage.users.map(u => {
+    const pct      = u.quota > 0 ? Math.round((u.thisMonth / u.quota) * 100) : 0;
+    const barColor = pct >= 100 ? 'var(--blush-dark)' : pct >= 80 ? 'var(--gold-dark)' : 'var(--green)';
+    const quotaStr = u.quotaOverride
+      ? `<strong>${u.quota}</strong> <span style="font-size:9px;color:var(--gold-dark)">custom</span>`
+      : `${u.quota}`;
+    return `<tr>
+      <td>${u.email || '—'}</td>
+      <td><span class="admin-badge" style="background:${u.role==='admin'?'var(--navy-pale)':'var(--green-light)'};color:${u.role==='admin'?'var(--navy)':'var(--green)'}">${u.role}</span></td>
+      <td>${u.joined ? new Date(u.joined).toLocaleDateString() : '—'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:44px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0">
+            <div style="width:${Math.min(pct,100)}%;height:100%;background:${barColor};border-radius:2px"></div>
+          </div>
+          <span style="font-size:11px;font-weight:500;color:${barColor}">${u.thisMonth}</span>
+        </div>
+      </td>
+      <td style="font-size:11px;color:var(--ink-soft)">${u.soloThisMonth}S / ${u.progressThisMonth}P</td>
+      <td>${quotaStr}</td>
+      <td>${u.allTime}</td>
+      <td><button class="btn btn-ghost" style="font-size:10px;padding:3px 8px" onclick="adminSetQuota('${u.id}','${u.email}',${u.quota})">Set Limit</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--ink-soft);padding:24px">No users yet</td></tr>';
+
+  // Analyses table (unchanged structure)
+  const profileMap = {};
+  usage.users.forEach(u => { profileMap[u.id] = u.email; });
   document.getElementById('admin-analyses-tbody').innerHTML = (analyses || []).map(a => `
     <tr>
-      <td style="font-size:10px;color:var(--ink-soft);max-width:160px;overflow:hidden;text-overflow:ellipsis">${(profiles||[]).find(p=>p.id===a.user_id)?.email||a.user_id.slice(0,8)+'…'}</td>
+      <td style="font-size:10px;color:var(--ink-soft);max-width:160px;overflow:hidden;text-overflow:ellipsis">${profileMap[a.user_id] || a.user_id.slice(0,8)+'…'}</td>
       <td><span class="admin-badge" style="background:${a.type==='solo'?'var(--blush-light)':'var(--green-light)'};color:${a.type==='solo'?'var(--blush-deep)':'var(--green)'}">${a.type}</span></td>
       <td>${a.pose||'—'}</td>
       <td>${a.score||'—'}</td>
       <td>${a.style||'—'}</td>
       <td>${a.date||'—'}</td>
     </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">No analyses yet</td></tr>';
+}
+
+// Admin: set one user's monthly limit
+async function adminSetQuota(userId, email, currentQuota) {
+  const input = prompt(`Monthly limit for ${email}\n(current: ${currentQuota}, leave blank to use default of ${DEFAULT_MONTHLY_QUOTA_DISPLAY})`, currentQuota);
+  if (input === null) return;
+  const quota = input.trim() === '' ? null : parseInt(input, 10);
+  if (quota !== null && (isNaN(quota) || quota < 0)) { alert('Please enter a positive number or leave blank.'); return; }
+  const r = await fetch('/api/admin/set-quota', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.authToken },
+    body: JSON.stringify({ targetUserId: userId, quota }),
+  });
+  r.ok ? loadAdminData() : alert('Error: ' + (await r.json()).error);
+}
+
+// Admin: bulk reset — set the same limit for ALL non-admin users at once
+async function adminSetQuotaAll() {
+  const input = prompt(`Set monthly limit for ALL users (non-admins).\nEnter a number (e.g. 5 or 15):`);
+  if (input === null) return;
+  const quota = parseInt(input, 10);
+  if (isNaN(quota) || quota < 0) { alert('Please enter a positive number.'); return; }
+  if (!confirm(`Set all non-admin users to ${quota} analyses/month?`)) return;
+  const r = await fetch('/api/admin/set-quota-all', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.authToken },
+    body: JSON.stringify({ quota }),
+  });
+  r.ok ? loadAdminData() : alert('Error: ' + (await r.json()).error);
+}
+
+// Admin: export usage as CSV for invoicing
+async function exportUsageCSV() {
+  const r = await fetch('/api/admin/usage', { headers: { 'Authorization': 'Bearer ' + S.authToken } });
+  if (!r.ok) { alert('Could not load usage data'); return; }
+  const { month, users } = await r.json();
+  const header = ['Email','Role','Joined','This Month','Solo','Progress','Quota','All Time'].join(',');
+  const rows   = users.map(u => [
+    `"${u.email || ''}"`, u.role,
+    u.joined ? new Date(u.joined).toLocaleDateString() : '',
+    u.thisMonth, u.soloThisMonth, u.progressThisMonth, u.quota, u.allTime,
+  ].join(','));
+  const csv  = [header, ...rows].join('\n');
+  const a    = Object.assign(document.createElement('a'), {
+    href:     URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+    download: `eleve-usage-${month.replace(' ', '-')}.csv`,
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Admin: update the global default quota from the input field
+async function adminSetDefaultQuota() {
+  const input = document.getElementById('default-quota-input');
+  const quota = parseInt(input?.value, 10);
+  if (isNaN(quota) || quota < 0) { alert('Please enter a positive number.'); return; }
+  if (!confirm(`Set the global default to ${quota} analyses/month for all users without a custom limit?`)) return;
+  const r = await fetch('/api/admin/set-default-quota', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.authToken },
+    body: JSON.stringify({ quota }),
+  });
+  if (r.ok) {
+    DEFAULT_MONTHLY_QUOTA_DISPLAY = quota;
+    loadAdminData(); // refresh to reflect new default in the summary
+  } else {
+    alert('Error: ' + (await r.json()).error);
+  }
 }
 
 // ── Boot ────────────────────────────────────────────────────────────────────
