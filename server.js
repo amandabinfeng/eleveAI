@@ -226,10 +226,11 @@ app.get('/api/supabase-config', (_, res) => {
 
 // User: fetch own quota status for this calendar month
 app.get('/api/quota-status', verifyAuth, async (req, res) => {
-  if (!supabaseAdmin) return res.json({ used: 0, quota: DEFAULT_MONTHLY_QUOTA, remaining: DEFAULT_MONTHLY_QUOTA });
+  const defaultQuota = await getDefaultQuota();
+  if (!supabaseAdmin) return res.json({ used: 0, quota: defaultQuota, remaining: defaultQuota });
   const userId = req.user.id;
   const { data: profile } = await supabaseAdmin.from('profiles').select('monthly_quota').eq('id', userId).single();
-  const quota = profile?.monthly_quota ?? DEFAULT_MONTHLY_QUOTA;
+  const quota = profile?.monthly_quota ?? defaultQuota;
   const now        = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
@@ -246,6 +247,7 @@ app.get('/api/admin/usage', verifyAuth, async (req, res) => {
   const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
   if (caller?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
 
+  const defaultQuota = await getDefaultQuota();
   const now        = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
@@ -266,10 +268,10 @@ app.get('/api/admin/usage', verifyAuth, async (req, res) => {
   (allRows || []).forEach(a => { allMap[a.user_id] = (allMap[a.user_id] || 0) + 1; });
 
   res.json({
-    month, defaultQuota: DEFAULT_MONTHLY_QUOTA,
+    month, defaultQuota: defaultQuota,
     users: (profiles || []).map(p => ({
       id: p.id, email: p.email, role: p.role,
-      quota:          p.monthly_quota ?? DEFAULT_MONTHLY_QUOTA,
+      quota:          p.monthly_quota ?? defaultQuota,
       quotaOverride:  p.monthly_quota !== null,
       thisMonth:      monthMap[p.id] || 0,
       soloThisMonth:  soloMap[p.id]  || 0,
