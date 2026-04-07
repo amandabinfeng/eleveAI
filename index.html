@@ -7,9 +7,11 @@
   // SharedArrayBuffer (FFmpeg.wasm). Works even behind Codespaces proxy.
   if ('serviceWorker' in navigator && !self.crossOriginIsolated) {
     navigator.serviceWorker.register('/coi-serviceworker.js').then(() => {
-      // Don't reload during OAuth callback — the hash contains the access token
-      // and a reload would strip it before Supabase can read it.
-      if (!location.hash.includes('access_token')) location.reload();
+      // Don't reload during OAuth callback — Supabase PKCE flow uses ?code= (query param)
+      // and implicit flow uses #access_token (hash). Either way, a reload would strip
+      // the token/code before Supabase can read it.
+      const isOAuthCallback = location.hash.includes('access_token') || location.search.includes('code=');
+      if (!isOAuthCallback) location.reload();
     });
   }
 </script>
@@ -2544,7 +2546,7 @@ async function signInWithGoogle() {
   clearLoginError();
   const { error } = await window._supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href }
+    options: { redirectTo: window.location.origin + '/' }
   });
   if (error) showLoginError(error.message);
 }
