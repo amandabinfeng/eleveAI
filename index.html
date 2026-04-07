@@ -1827,9 +1827,10 @@ function seekProgVideo(videoId, timeStr) {
   if (!vid || !timeStr || timeStr === 'undefined' || timeStr === 'null') return;
   const secs = parseTimestamp(timeStr);
   if (isNaN(secs)) return;
-  // Re-attach src if video lost it (e.g. after page re-render)
   const urlMap = { 'prog-video-1': S.prog1VideoURL, 'prog-video-2': S.prog2VideoURL };
-  if (!vid.src && urlMap[videoId]) { vid.src = urlMap[videoId]; vid.load(); }
+  const url = urlMap[videoId];
+  // Re-attach src if video has wrong or missing src
+  if (url && vid.src !== url) { vid.src = url; }
   function doSeek() {
     if (vid.ended) vid.pause();   // reset ended state so seek + play work reliably
     vid.currentTime = secs;
@@ -1837,7 +1838,12 @@ function seekProgVideo(videoId, timeStr) {
     vid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   if (vid.readyState >= 1) { doSeek(); }
-  else { vid.addEventListener('loadedmetadata', doSeek, { once: true }); }
+  else {
+    // Force-start loading so loadedmetadata fires — without this, the browser
+    // may sit in NETWORK_IDLE (preload=none) and the event never comes.
+    vid.load();
+    vid.addEventListener('loadedmetadata', doSeek, { once: true });
+  }
 }
 
 function exportPDF() {
