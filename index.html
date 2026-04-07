@@ -1561,13 +1561,13 @@ async function startGeminiAnalysis() {
     const ageGroup = S.ageGroup || 'Junior';
 
     // Step 1: Get Gemini key from server
-    setStep(1,'active'); setProc('proc-bar','proc-pct','proc-label',5,'Connecting to Gemini…');
+    setStep(1,'active'); setProc('proc-bar','proc-pct','proc-label',5,'Connecting to AI…');
     const keyResp = await fetch('/api/gemini-key');
     if (!keyResp.ok) throw new Error('Gemini API key not available on server');
     const { key: geminiKey } = await keyResp.json();
 
     // Step 2: Upload video directly from browser to Gemini Files API (bypasses nginx size limit)
-    setProc('proc-bar','proc-pct','proc-label',10,'Uploading video directly to Gemini…');
+    setProc('proc-bar','proc-pct','proc-label',10,'Uploading video to AI…');
     const file     = S.analysisFile;
     const mimeType = file.type || 'video/mp4';
 
@@ -1597,7 +1597,7 @@ async function startGeminiAnalysis() {
     const uploadData = await uploadResp.json();
     const fileName   = uploadData.file.name;
     const fileUri    = uploadData.file.uri;
-    setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',30,'Video uploaded — waiting for Gemini to process…');
+    setStep(1,'done'); setStep(2,'active'); setProc('proc-bar','proc-pct','proc-label',30,'Video uploaded — waiting for AI to process…');
 
     // Step 3: Poll until ACTIVE
     let fileState = uploadData.file.state;
@@ -1613,7 +1613,7 @@ async function startGeminiAnalysis() {
     if (fileState !== 'ACTIVE') throw new Error(`Gemini file processing failed: ${fileState}`);
 
     // Step 4: Send URI to server for analysis (tiny JSON payload — no nginx size issue)
-    setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',55,'Analysing performance with Gemini…');
+    setStep(2,'done'); setStep(3,'active'); setProc('proc-bar','proc-pct','proc-label',55,'Analysing performance with AI…');
     const resp = await fetch('/api/gemini-analyze-uri', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(S.authToken ? { 'Authorization': 'Bearer ' + S.authToken } : {}) },
