@@ -6,7 +6,11 @@
   // Register service worker to inject COOP/COEP headers — needed for
   // SharedArrayBuffer (FFmpeg.wasm). Works even behind Codespaces proxy.
   if ('serviceWorker' in navigator && !self.crossOriginIsolated) {
-    navigator.serviceWorker.register('/coi-serviceworker.js').then(() => location.reload());
+    navigator.serviceWorker.register('/coi-serviceworker.js').then(() => {
+      // Don't reload during OAuth callback — the hash contains the access token
+      // and a reload would strip it before Supabase can read it.
+      if (!location.hash.includes('access_token')) location.reload();
+    });
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -440,6 +444,7 @@ input.field:focus{border-color:var(--navy)}
         <span class="topbar-title" id="topbar-title">Dashboard</span>
         <span class="topbar-sub" id="topbar-sub">Welcome back</span>
       </div>
+      <div id="topbar-quota" style="display:none;font-size:11px;color:var(--ink-soft);background:var(--bg);border:.5px solid var(--border);border-radius:20px;padding:4px 12px;white-space:nowrap"></div>
       <div class="topbar-right">
         <div id="conn-status-bar" style="font-size:10px;color:var(--ink-soft)"></div>
         <button id="mobile-signout-btn" onclick="signOut()" style="display:none;background:none;border:none;cursor:pointer;color:var(--ink-soft);padding:4px 6px;border-radius:6px" title="Sign out"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
@@ -2244,6 +2249,21 @@ async function refreshQuotaStatus() {
       if (remaining <= 0)    { chipEl.textContent = 'Limit reached'; chipEl.style.color = 'var(--blush-deep)'; }
       else if (pct >= 0.8)   { chipEl.textContent = `${remaining} left`; chipEl.style.color = 'var(--gold-dark)'; }
       else                   { chipEl.textContent = `${remaining} remaining`; chipEl.style.color = 'var(--green)'; }
+    }
+
+    // Topbar quota pill
+    const tqEl = document.getElementById('topbar-quota');
+    if (tqEl) {
+      tqEl.style.display = 'block';
+      if (remaining <= 0) {
+        tqEl.textContent = 'Analysis limit reached';
+        tqEl.style.color = 'var(--blush-deep)';
+        tqEl.style.borderColor = 'var(--blush-deep)';
+      } else {
+        tqEl.textContent = `${remaining} of ${quota} analyses remaining`;
+        tqEl.style.color = remaining <= 1 ? 'var(--blush-deep)' : remaining <= 2 ? 'var(--gold-dark)' : 'var(--ink-soft)';
+        tqEl.style.borderColor = 'var(--border)';
+      }
     }
   } catch(e) { console.warn('refreshQuotaStatus:', e.message); }
 }
