@@ -418,6 +418,7 @@ Return ONLY valid JSON (no markdown, no extra text):
             if (attempt > 0) {
               const delay = (Math.pow(2, attempt) * 1500) + (Math.random() * 1500 - 750); // 3s, 6s, 12s ± jitter
               console.log(`⏳ Waiting ${Math.round(delay/1000)}s before retry ${attempt} on ${modelId}…`);
+              send({ status: 'analyzing', message: `AI busy — retrying in ${Math.round(delay/1000)}s…` });
               await new Promise(r => setTimeout(r, delay));
             }
             console.log(`Trying model: ${modelId} (attempt ${attempt + 1})`);
