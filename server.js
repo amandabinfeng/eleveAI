@@ -345,7 +345,7 @@ if (GoogleGenerativeAI) {
       if (!fileUri) throw new Error('No fileUri provided');
       if (!GEMINI_KEY) throw new Error('GEMINI_API_KEY not set');
 
-      send({ status: 'analyzing', message: 'Analysing performance with Gemini…' });
+      send({ status: 'analyzing', message: 'Analysing performance with AI…' });
 
       const ageFocusMap = {
         'Pre-competitive': `DIVISION: Pre-competitive.
@@ -606,7 +606,7 @@ if (multer && GoogleGenerativeAI && GoogleAIFileManager) {
       }
       if (file.state !== 'ACTIVE') throw new Error(`Gemini file processing failed: ${file.state}`);
 
-      send({ status: 'analyzing', message: 'Analysing performance with Gemini…' });
+      send({ status: 'analyzing', message: 'Analysing performance with AI…' });
       console.log('✓ Video ready — starting analysis');
 
       const ageFocusMap = {
