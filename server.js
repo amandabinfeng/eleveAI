@@ -9,9 +9,14 @@ const os      = require('os');
 let fetch;
 try {
   fetch = require('node-fetch');
+  if (!globalThis.fetch) globalThis.fetch = fetch;
 } catch(e) {
-  console.error('\n❌  Run:  npm install\n');
-  process.exit(1);
+  // Node 18+ has native fetch — use it
+  if (!globalThis.fetch) {
+    console.error('\n❌  Run:  npm install\n');
+    process.exit(1);
+  }
+  fetch = globalThis.fetch;
 }
 
 let nodemailer;
