@@ -56,14 +56,6 @@ html,body{height:100%;background:var(--surface);font-family:var(--font-sans);col
 .nav-item.active svg{opacity:1}
 .nav-badge{margin-left:auto;background:var(--blush-dark);color:#fff;font-size:8px;padding:1px 6px;border-radius:8px;font-weight:500}
 .sidebar-footer{padding:16px 20px;flex-shrink:0;position:relative;z-index:1}
-.conn-pill{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.07);cursor:pointer;transition:background .15s;}
-.conn-pill:hover{background:rgba(255,255,255,.12)}
-.conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
-.conn-dot.ok{background:var(--green)}
-.conn-dot.err{background:var(--blush-dark)}
-.conn-dot.checking{background:var(--gold);animation:blink 1s ease infinite alternate}
-.conn-text{font-size:10px;color:rgba(255,255,255,.6);line-height:1.35}
-.conn-label{font-size:10px;color:rgba(255,255,255,.85);font-weight:500}
 @keyframes blink{to{opacity:.4}}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .topbar{height:56px;flex-shrink:0;background:var(--white);border-bottom:.5px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;}
@@ -250,11 +242,10 @@ input.field:focus{border-color:var(--navy)}
 .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
 @media(max-width:900px){
   .sidebar{width:52px}
-  .brand-name,.brand-sub,.nav-item span,.conn-text,.conn-label,.nav-section{display:none}
+  .brand-name,.brand-sub,.nav-item span,.nav-section{display:none}
   .nav-item{justify-content:center;padding:10px}
   .nav-item.active::before{display:none}
   .sidebar-footer{padding:10px}
-  .conn-pill{justify-content:center}
   .feat-grid,.dash-grid{grid-template-columns:1fr 1fr}
   .feature-layout{grid-template-columns:1fr}
   .delta-grid{grid-template-columns:1fr}
@@ -410,13 +401,6 @@ input.field:focus{border-color:var(--navy)}
       <div id="user-pill" class="user-pill" style="display:none">
         <div class="user-pill-email" id="user-pill-email">—</div>
         <button class="btn-signout" onclick="signOut()">Sign out</button>
-      </div>
-      <div class="conn-pill" onclick="checkConnection(true)">
-        <div class="conn-dot checking" id="conn-dot"></div>
-        <div>
-          <div class="conn-label" id="conn-label">Checking…</div>
-          <div class="conn-text" id="conn-text">Connection status</div>
-        </div>
       </div>
     </div>
   </aside>
@@ -989,31 +973,16 @@ window.addEventListener('popstate', e => { showView(e.state?.view || 'dashboard'
 
 // ── Connection check ───────────────────────────────────────────────────────
 async function checkConnection(showAlert) {
-  const dot = document.getElementById('conn-dot');
-  const label = document.getElementById('conn-label');
-  const text = document.getElementById('conn-text');
   const bar = document.getElementById('conn-status-bar');
-  dot.className = 'conn-dot checking'; label.textContent = 'Checking…';
-  const h = location.hostname;
-  const isCodespaces = h.endsWith('.app.github.dev') || h.endsWith('.github.dev');
-  const isLocal = h === 'localhost' || h === '127.0.0.1';
-  if (isCodespaces || isLocal) {
-    try {
-      const r = await fetch('/health', { signal: AbortSignal.timeout(2000) });
-      if (r.ok) {
-        dot.className = 'conn-dot ok';
-        label.textContent = isCodespaces ? 'Codespaces' : 'Proxy server';
-        text.textContent = 'OpenAI API connected';
-        bar.textContent = '● Ready'; bar.style.color = 'var(--green)';
-        return;
-      }
-    } catch(e) {}
-  }
-  dot.className = 'conn-dot err';
-  label.textContent = 'Not connected';
-  text.textContent = 'Start proxy or add API key';
-  bar.textContent = '● Proxy offline'; bar.style.color = 'var(--blush-dark)';
-  if (showAlert) alert('Proxy server not detected.\n\nStart it with:\n  npm start\n\nOr add your API key in Profile → Settings.');
+  try {
+    const r = await fetch('/health', { signal: AbortSignal.timeout(2000) });
+    if (r.ok) {
+      bar.textContent = '● Ready'; bar.style.color = 'var(--green)';
+      return;
+    }
+  } catch(e) {}
+  bar.textContent = '● Server offline'; bar.style.color = 'var(--blush-dark)';
+  if (showAlert) alert('Server not responding. Make sure node server.js is running.');
 }
 
 // ── MediaPipe ──────────────────────────────────────────────────────────────
