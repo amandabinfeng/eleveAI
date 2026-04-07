@@ -409,25 +409,38 @@ Return ONLY valid JSON (no markdown, no extra text):
 
       const genAI = new GoogleGenerativeAI(GEMINI_KEY);
       const FALLBACK_MODELS = [GEMINI_MODEL, 'gemini-3.1-flash-lite-preview', 'gemini-2.5-flash'];
+      const MAX_RETRIES = 3;
       let text, usedModel;
       for (const modelId of FALLBACK_MODELS) {
-        try {
-          console.log(`Trying model: ${modelId}`);
-          const model = genAI.getGenerativeModel({ model: modelId, generationConfig: { maxOutputTokens: 4000 } });
-          const result = await model.generateContent([{ fileData: { fileUri, mimeType } }, { text: prompt }]);
-          text = result.response.text();
-          usedModel = modelId;
-          console.log(`✓ Gemini analysis done (model: ${usedModel})`);
-          break;
-        } catch (modelErr) {
-          const is503 = modelErr.message?.includes('503') || modelErr.message?.includes('Service Unavailable') || modelErr.message?.includes('high demand');
-          if (is503 && modelId !== FALLBACK_MODELS[FALLBACK_MODELS.length - 1]) {
-            console.warn(`⚠️  ${modelId} unavailable (503), trying fallback...`);
-            continue;
+        let success = false;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          try {
+            if (attempt > 0) {
+              const delay = (Math.pow(2, attempt) * 1500) + (Math.random() * 1500 - 750); // 3s, 6s, 12s ± jitter
+              console.log(`⏳ Waiting ${Math.round(delay/1000)}s before retry ${attempt} on ${modelId}…`);
+              await new Promise(r => setTimeout(r, delay));
+            }
+            console.log(`Trying model: ${modelId} (attempt ${attempt + 1})`);
+            const model = genAI.getGenerativeModel({ model: modelId, generationConfig: { maxOutputTokens: 4000 } });
+            const result = await model.generateContent([{ fileData: { fileUri, mimeType } }, { text: prompt }]);
+            text = result.response.text();
+            usedModel = modelId;
+            console.log(`✓ Gemini analysis done (model: ${usedModel})`);
+            success = true;
+            break;
+          } catch (modelErr) {
+            const is503 = modelErr.message?.includes('503') || modelErr.message?.includes('Service Unavailable') || modelErr.message?.includes('high demand');
+            if (is503 && attempt < MAX_RETRIES - 1) {
+              console.warn(`⚠️  ${modelId} unavailable (503), will retry…`);
+              continue;
+            }
+            if (is503) console.warn(`⚠️  ${modelId} failed all retries, trying next model…`);
+            else throw modelErr;
           }
-          throw modelErr;
         }
+        if (success) break;
       }
+      if (!text) throw new Error('All models unavailable — please try again in a few minutes.');
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
@@ -494,29 +507,42 @@ Return ONLY valid JSON (no markdown):
 
       const genAI = new GoogleGenerativeAI(GEMINI_KEY);
       const FALLBACK_MODELS = [GEMINI_MODEL, 'gemini-3.1-flash-lite-preview', 'gemini-2.5-flash'];
+      const MAX_RETRIES = 3;
       let text, usedModel;
       for (const modelId of FALLBACK_MODELS) {
-        try {
-          console.log(`Trying model for comparison: ${modelId}`);
-          const model = genAI.getGenerativeModel({ model: modelId, generationConfig: { maxOutputTokens: 5000 } });
-          const result = await model.generateContent([
-            { fileData: { fileUri: fileUri1, mimeType: mimeType1 } },
-            { fileData: { fileUri: fileUri2, mimeType: mimeType2 } },
-            { text: prompt }
-          ]);
-          text = result.response.text();
-          usedModel = modelId;
-          console.log(`✓ Gemini comparison done (model: ${usedModel})`);
-          break;
-        } catch (modelErr) {
-          const is503 = modelErr.message?.includes('503') || modelErr.message?.includes('Service Unavailable') || modelErr.message?.includes('high demand');
-          if (is503 && modelId !== FALLBACK_MODELS[FALLBACK_MODELS.length - 1]) {
-            console.warn(`⚠️  ${modelId} unavailable, trying fallback…`);
-            continue;
+        let success = false;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          try {
+            if (attempt > 0) {
+              const delay = (Math.pow(2, attempt) * 1500) + (Math.random() * 1500 - 750);
+              console.log(`⏳ Waiting ${Math.round(delay/1000)}s before retry ${attempt} on ${modelId}…`);
+              await new Promise(r => setTimeout(r, delay));
+            }
+            console.log(`Trying model for comparison: ${modelId} (attempt ${attempt + 1})`);
+            const model = genAI.getGenerativeModel({ model: modelId, generationConfig: { maxOutputTokens: 5000 } });
+            const result = await model.generateContent([
+              { fileData: { fileUri: fileUri1, mimeType: mimeType1 } },
+              { fileData: { fileUri: fileUri2, mimeType: mimeType2 } },
+              { text: prompt }
+            ]);
+            text = result.response.text();
+            usedModel = modelId;
+            console.log(`✓ Gemini comparison done (model: ${usedModel})`);
+            success = true;
+            break;
+          } catch (modelErr) {
+            const is503 = modelErr.message?.includes('503') || modelErr.message?.includes('Service Unavailable') || modelErr.message?.includes('high demand');
+            if (is503 && attempt < MAX_RETRIES - 1) {
+              console.warn(`⚠️  ${modelId} unavailable (503), will retry…`);
+              continue;
+            }
+            if (is503) console.warn(`⚠️  ${modelId} failed all retries, trying next model…`);
+            else throw modelErr;
           }
-          throw modelErr;
         }
+        if (success) break;
       }
+      if (!text) throw new Error('All models unavailable — please try again in a few minutes.');
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
