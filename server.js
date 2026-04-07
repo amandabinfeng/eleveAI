@@ -140,7 +140,8 @@ function checkQuota(cost = 1) {
 
     // Read per-user override; fall back to global default from settings table
     const { data: profile } = await supabaseAdmin
-      .from('profiles').select('quota').eq('id', userId).single();
+      .from('profiles').select('quota, role').eq('id', userId).single();
+    if (profile?.role === 'admin') return next(); // admins have unlimited analyses
     const defaultQuota = await getDefaultQuota();
     const quota = profile?.quota ?? defaultQuota;
 
@@ -229,12 +230,13 @@ app.get('/api/quota-status', verifyAuth, async (req, res) => {
   const defaultQuota = await getDefaultQuota();
   if (!supabaseAdmin) return res.json({ used: 0, quota: defaultQuota, remaining: defaultQuota });
   const userId = req.user.id;
-  const { data: profile } = await supabaseAdmin.from('profiles').select('quota').eq('id', userId).single();
-  const quota = profile?.quota ?? defaultQuota;
-  const { count }  = await supabaseAdmin.from('analyses')
+  const { data: profile } = await supabaseAdmin.from('profiles').select('quota, role').eq('id', userId).single();
+  const { count } = await supabaseAdmin.from('analyses')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId);
   const used = count ?? 0;
+  if (profile?.role === 'admin') return res.json({ used, quota: null, remaining: null, isAdmin: true });
+  const quota = profile?.quota ?? defaultQuota;
   res.json({ used, quota, remaining: quota - used });
 });
 

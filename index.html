@@ -1556,7 +1556,7 @@ async function startAnalysis() {
 }
 
 async function startGeminiAnalysis() {
-  if (S.quotaRemaining <= 0) {
+  if (!S.isAdmin && S.quotaRemaining <= 0) {
     document.getElementById('analysis-error').innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
       <div class="banner-title">Analysis limit reached</div>
       <p>You have used all ${S.quotaTotal} lifetime analyses. Contact us at <a href="mailto:eleveaicontact@gmail.com" style="color:inherit">eleveaicontact@gmail.com</a> to increase your limit.</p>
@@ -1879,7 +1879,7 @@ function resetAnalysis() {
 // ── Progress (Gemini two-video comparison) ─────────────────────────────────
 async function startProgress() {
   if (!S.prog1File || !S.prog2File) return;
-  if (S.quotaRemaining <= 0) {
+  if (!S.isAdmin && S.quotaRemaining <= 0) {
     document.getElementById('prog-error').innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
       <div class="banner-title">Analysis limit reached</div>
       <p>You have used all ${S.quotaTotal} lifetime analyses. Contact us at <a href="mailto:eleveaicontact@gmail.com" style="color:inherit">eleveaicontact@gmail.com</a> to increase your limit.</p>
@@ -2248,8 +2248,22 @@ async function refreshQuotaStatus() {
   try {
     const resp = await fetch('/api/quota-status', { headers: { 'Authorization': 'Bearer ' + S.authToken } });
     if (!resp.ok) return;
-    const { used, quota, remaining } = await resp.json();
+    const { used, quota, remaining, isAdmin } = await resp.json();
     S.quotaUsed = used; S.quotaTotal = quota; S.quotaRemaining = remaining;
+
+    if (isAdmin) {
+      const tqEl  = document.getElementById('topbar-quota');
+      const remEl = document.getElementById('prof-quota-remaining');
+      const lblEl = document.getElementById('prof-quota-label');
+      const usedEl = document.getElementById('quota-used-text');
+      const chipEl = document.getElementById('quota-status-chip');
+      if (tqEl)   tqEl.style.display  = 'none';
+      if (remEl)  remEl.textContent   = '∞';
+      if (lblEl)  lblEl.textContent   = 'Unlimited';
+      if (usedEl) usedEl.textContent  = `${used} analyses used · no limit`;
+      if (chipEl) { chipEl.textContent = 'Unlimited'; chipEl.style.color = 'var(--green)'; }
+      return;
+    }
 
     const remEl  = document.getElementById('prof-quota-remaining');
     const lblEl  = document.getElementById('prof-quota-label');
