@@ -1556,6 +1556,13 @@ async function startAnalysis() {
 }
 
 async function startGeminiAnalysis() {
+  if (S.quotaRemaining <= 0) {
+    document.getElementById('analysis-error').innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
+      <div class="banner-title">Analysis limit reached</div>
+      <p>You have used all ${S.quotaTotal} lifetime analyses. Contact us at <a href="mailto:eleveaicontact@gmail.com" style="color:inherit">eleveaicontact@gmail.com</a> to increase your limit.</p>
+    </div>`;
+    return;
+  }
   document.getElementById('analysis-error').innerHTML = '';
   document.getElementById('analysis-upload').style.display = 'none';
   document.getElementById('analysis-processing').style.display = 'block';
@@ -1872,6 +1879,13 @@ function resetAnalysis() {
 // ── Progress (Gemini two-video comparison) ─────────────────────────────────
 async function startProgress() {
   if (!S.prog1File || !S.prog2File) return;
+  if (S.quotaRemaining <= 0) {
+    document.getElementById('prog-error').innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
+      <div class="banner-title">Analysis limit reached</div>
+      <p>You have used all ${S.quotaTotal} lifetime analyses. Contact us at <a href="mailto:eleveaicontact@gmail.com" style="color:inherit">eleveaicontact@gmail.com</a> to increase your limit.</p>
+    </div>`;
+    return;
+  }
   document.getElementById('prog-error').innerHTML = '';
   document.getElementById('prog-upload').style.display = 'none';
   document.getElementById('prog-processing').style.display = 'block';
