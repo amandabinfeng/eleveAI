@@ -824,7 +824,7 @@ input.field:focus{border-color:var(--navy)}
                 <div style="margin-left:auto;display:flex;gap:24px">
                   <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:#fff;font-weight:600" id="prof-total">0</div><div style="font-size:9px;color:var(--navy-muted)">Analyses</div></div>
                   <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:var(--blush);font-weight:600" id="prof-best">—</div><div style="font-size:9px;color:var(--navy-muted)">Best Score</div></div>
-                  <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:var(--gold);font-weight:600" id="prof-quota-remaining">—</div><div style="font-size:9px;color:var(--navy-muted)" id="prof-quota-label">This Month</div></div>
+                  <div style="text-align:center"><div style="font-family:var(--font-serif);font-size:26px;color:var(--gold);font-weight:600" id="prof-quota-remaining">—</div><div style="font-size:9px;color:var(--navy-muted)" id="prof-quota-label">Remaining</div></div>
                 </div>
               </div>
               <div class="panel-body">
@@ -864,7 +864,7 @@ input.field:focus{border-color:var(--navy)}
         <div class="panel" style="margin-bottom:20px">
           <div class="panel-head"><div class="panel-title">Global Default Quota</div></div>
           <div class="panel-body" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <div style="font-size:12px;color:var(--ink-soft);flex:1;min-width:200px">Free analyses every new user gets per month. Users with a custom limit are unaffected.</div>
+            <div style="font-size:12px;color:var(--ink-soft);flex:1;min-width:200px">Free analyses every new user gets in total (lifetime). Users with a custom limit are unaffected.</div>
             <div style="display:flex;align-items:center;gap:8px">
               <input type="number" id="default-quota-input" min="0" max="999" style="width:70px;padding:7px 10px;border:.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-sans);color:var(--ink);background:var(--white);outline:none" placeholder="5"/>
               <button class="btn btn-primary" style="font-size:12px;padding:7px 14px" onclick="adminSetDefaultQuota()">Update</button>
@@ -964,7 +964,7 @@ const S = {
   // Quota (refreshed after sign-in and after each analysis)
   quotaUsed: 0, quotaTotal: 10, quotaRemaining: 10,
 };
-let DEFAULT_MONTHLY_QUOTA_DISPLAY = 5; // updated from server on admin panel load
+let DEFAULT_QUOTA_DISPLAY = 5; // updated from server on admin panel load
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 const viewTitles = {
@@ -1461,9 +1461,9 @@ function showError(containerId, msg) {
   // Quota exceeded — friendly dedicated message
   if (msg && msg.startsWith('__quota__:')) {
     el.innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
-      <div class="banner-title">Monthly analysis limit reached</div>
+      <div class="banner-title">Analysis limit reached</div>
       <p>${msg.slice(10)}</p>
-      <p style="margin-top:8px;font-size:11px;opacity:.8">Your video is still loaded — you can try again next month, or contact <a href="mailto:eleveaicontact@gmail.com" style="color:inherit">eleveaicontact@gmail.com</a> to increase your limit.</p>
+      <p style="margin-top:8px;font-size:11px;opacity:.8">Your video is still loaded — contact <a href="mailto:eleveaicontact@gmail.com" style="color:inherit">eleveaicontact@gmail.com</a> to increase your limit.</p>
     </div>`;
     refreshQuotaStatus();
     return;
@@ -1621,7 +1621,7 @@ async function startGeminiAnalysis() {
     });
     if (!resp.ok) {
       const t = await resp.text();
-      if (resp.status === 429) { const d = JSON.parse(t||'{}'); throw new Error('__quota__:' + (d.message || 'Monthly limit reached.')); }
+      if (resp.status === 429) { const d = JSON.parse(t||'{}'); throw new Error('__quota__:' + (d.message || 'Analysis limit reached.')); }
       throw new Error(`Server error ${resp.status}: ${t.slice(0,200)}`);
     }
 
@@ -1939,7 +1939,7 @@ async function startProgress() {
     });
     if (!compareResp.ok) {
       const t = await compareResp.text();
-      if (compareResp.status === 429) { const d = JSON.parse(t||'{}'); throw new Error('__quota__:' + (d.message || 'Monthly limit reached.')); }
+      if (compareResp.status === 429) { const d = JSON.parse(t||'{}'); throw new Error('__quota__:' + (d.message || 'Analysis limit reached.')); }
       throw new Error(`Server error ${compareResp.status}: ${t.slice(0,200)}`);
     }
     const compareData = await compareResp.json();
@@ -2237,8 +2237,8 @@ async function refreshQuotaStatus() {
     const usedEl = document.getElementById('quota-used-text');
     const chipEl = document.getElementById('quota-status-chip');
     if (remEl)  remEl.textContent  = remaining;
-    if (lblEl)  lblEl.textContent  = `Remaining (${quota}/mo)`;
-    if (usedEl) usedEl.textContent = `${used} of ${quota} analyses used this month`;
+    if (lblEl)  lblEl.textContent  = `Remaining (${quota} total)`;
+    if (usedEl) usedEl.textContent = `${used} of ${quota} lifetime analyses used`;
     if (chipEl) {
       const pct = quota > 0 ? used / quota : 1;
       if (remaining <= 0)    { chipEl.textContent = 'Limit reached'; chipEl.style.color = 'var(--blush-deep)'; }
@@ -2590,7 +2590,7 @@ async function loadAdminData() {
 
   // Populate the default quota input and update the in-memory display constant
   const currentDefault = parseInt(settings.default_quota || '5', 10);
-  DEFAULT_MONTHLY_QUOTA_DISPLAY = currentDefault;
+  DEFAULT_QUOTA_DISPLAY = currentDefault;
   const dqInput = document.getElementById('default-quota-input');
   if (dqInput) dqInput.value = currentDefault;
 
@@ -2599,7 +2599,7 @@ async function loadAdminData() {
   // Monthly summary callout
   const totalThisMonth = usage.users.reduce((s, u) => s + u.thisMonth, 0);
   const activeUsers    = usage.users.filter(u => u.thisMonth > 0).length;
-  const overQuota      = usage.users.filter(u => u.thisMonth >= u.quota).length;
+  const overQuota      = usage.users.filter(u => u.allTime >= u.quota).length;
   const summaryPanel   = document.getElementById('monthly-summary-panel');
   summaryPanel.style.display = 'block';
   document.getElementById('monthly-summary-title').textContent = `${usage.month} — Usage Summary`;
@@ -2612,7 +2612,7 @@ async function loadAdminData() {
 
   // Users table with monthly usage, quota, progress bar, and Set Limit action
   document.getElementById('admin-users-tbody').innerHTML = usage.users.map(u => {
-    const pct      = u.quota > 0 ? Math.round((u.thisMonth / u.quota) * 100) : 0;
+    const pct      = u.quota > 0 ? Math.round((u.allTime / u.quota) * 100) : 0;
     const barColor = pct >= 100 ? 'var(--blush-dark)' : pct >= 80 ? 'var(--gold-dark)' : 'var(--green)';
     const quotaStr = u.quotaOverride
       ? `<strong>${u.quota}</strong> <span style="font-size:9px;color:var(--gold-dark)">custom</span>`
@@ -2626,7 +2626,7 @@ async function loadAdminData() {
           <div style="width:44px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0">
             <div style="width:${Math.min(pct,100)}%;height:100%;background:${barColor};border-radius:2px"></div>
           </div>
-          <span style="font-size:11px;font-weight:500;color:${barColor}">${u.thisMonth}</span>
+          <span style="font-size:11px;font-weight:500;color:${barColor}">${u.allTime}</span>
         </div>
       </td>
       <td style="font-size:11px;color:var(--ink-soft)">${u.soloThisMonth}S / ${u.progressThisMonth}P</td>
@@ -2650,9 +2650,9 @@ async function loadAdminData() {
     </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">No analyses yet</td></tr>';
 }
 
-// Admin: set one user's monthly limit
+// Admin: set one user's lifetime limit
 async function adminSetQuota(userId, email, currentQuota) {
-  const input = prompt(`Monthly limit for ${email}\n(current: ${currentQuota}, leave blank to use default of ${DEFAULT_MONTHLY_QUOTA_DISPLAY})`, currentQuota);
+  const input = prompt(`Lifetime limit for ${email}\n(current: ${currentQuota}, leave blank to use default of ${DEFAULT_QUOTA_DISPLAY})`, currentQuota);
   if (input === null) return;
   const quota = input.trim() === '' ? null : parseInt(input, 10);
   if (quota !== null && (isNaN(quota) || quota < 0)) { alert('Please enter a positive number or leave blank.'); return; }
@@ -2666,11 +2666,11 @@ async function adminSetQuota(userId, email, currentQuota) {
 
 // Admin: bulk reset — set the same limit for ALL non-admin users at once
 async function adminSetQuotaAll() {
-  const input = prompt(`Set monthly limit for ALL users (non-admins).\nEnter a number (e.g. 5 or 15):`);
+  const input = prompt(`Set lifetime limit for ALL users (non-admins).\nEnter a number (e.g. 5 or 15):`);
   if (input === null) return;
   const quota = parseInt(input, 10);
   if (isNaN(quota) || quota < 0) { alert('Please enter a positive number.'); return; }
-  if (!confirm(`Set all non-admin users to ${quota} analyses/month?`)) return;
+  if (!confirm(`Set all non-admin users to ${quota} lifetime analyses?`)) return;
   const r = await fetch('/api/admin/set-quota-all', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.authToken },
@@ -2704,14 +2704,14 @@ async function adminSetDefaultQuota() {
   const input = document.getElementById('default-quota-input');
   const quota = parseInt(input?.value, 10);
   if (isNaN(quota) || quota < 0) { alert('Please enter a positive number.'); return; }
-  if (!confirm(`Set the global default to ${quota} analyses/month for all users without a custom limit?`)) return;
+  if (!confirm(`Set the global default to ${quota} lifetime analyses for all users without a custom limit?`)) return;
   const r = await fetch('/api/admin/set-default-quota', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.authToken },
     body: JSON.stringify({ quota }),
   });
   if (r.ok) {
-    DEFAULT_MONTHLY_QUOTA_DISPLAY = quota;
+    DEFAULT_QUOTA_DISPLAY = quota;
     loadAdminData(); // refresh to reflect new default in the summary
   } else {
     alert('Error: ' + (await r.json()).error);

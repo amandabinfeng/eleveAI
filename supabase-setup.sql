@@ -116,13 +116,16 @@ CREATE POLICY "admins_read_settings"
   );
 
 
--- ── 5. Per-user monthly quota ───────────────────────────────────────────────
+-- ── 5. Per-user lifetime quota ──────────────────────────────────────────────
 -- Adds an optional per-user quota override column to profiles.
--- NULL = use server default (DEFAULT_MONTHLY_QUOTA in server.js, currently 10).
+-- NULL = use server default (from settings table, currently 5).
 -- Run this once if you already have the profiles table from the script above.
 
 ALTER TABLE profiles
-  ADD COLUMN IF NOT EXISTS monthly_quota INT DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS quota INT DEFAULT NULL;
+
+-- MIGRATION: rename monthly_quota → quota on existing databases (safe to re-run)
+ALTER TABLE profiles RENAME COLUMN monthly_quota TO quota;
 
 -- Tracks when the last quota-exceeded notification was sent for this user.
 -- Prevents duplicate admin emails when the user retries repeatedly.

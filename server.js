@@ -94,9 +94,9 @@ async function notifyAdminQuotaExceeded(userId, userEmail, quota) {
       from:    `"Élevé AI" <${GMAIL_USER}>`,
       to:      ADMIN_EMAIL,
       subject: `[Élevé AI] User reached quota — ${userEmail}`,
-      text:    `User ${userEmail} has reached their monthly analysis limit of ${quota}.\n\nTo give them more access, log in to the Admin Panel and use "Set Limit" on their row.`,
+      text:    `User ${userEmail} has reached their lifetime analysis limit of ${quota}.\n\nTo give them more access, log in to the Admin Panel and use "Set Limit" on their row.`,
       html:    `<p>Hi,</p>
-                <p>User <strong>${userEmail}</strong> has reached their monthly analysis limit of <strong>${quota}</strong>.</p>
+                <p>User <strong>${userEmail}</strong> has reached their lifetime analysis limit of <strong>${quota}</strong>.</p>
                 <p>To give them more access, log in to the <strong>Admin Panel</strong> and use <em>Set Limit</em> on their row.</p>
                 <p>— Élevé AI</p>`,
     });
@@ -126,7 +126,7 @@ async function verifyAuth(req, res, next) {
   next();
 }
 
-// Quota middleware — checks monthly usage BEFORE calling Gemini (cost = 1 per call)
+// Quota middleware — checks all-time usage BEFORE calling Gemini (cost = 1 per call)
 function checkQuota(cost = 1) {
   return async function(req, res, next) {
     if (!supabaseAdmin) return next(); // dev fallback: Supabase not configured
@@ -135,19 +135,14 @@ function checkQuota(cost = 1) {
 
     // Read per-user override; fall back to global default from settings table
     const { data: profile } = await supabaseAdmin
-      .from('profiles').select('monthly_quota').eq('id', userId).single();
+      .from('profiles').select('quota').eq('id', userId).single();
     const defaultQuota = await getDefaultQuota();
-    const quota = profile?.monthly_quota ?? defaultQuota;
+    const quota = profile?.quota ?? defaultQuota;
 
-    const now        = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
     const { count, error: countErr } = await supabaseAdmin
       .from('analyses')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', monthStart)
-      .lt('created_at', monthEnd);
+      .eq('user_id', userId);
 
     if (countErr) {
       console.error('checkQuota count error:', countErr.message);
@@ -159,7 +154,7 @@ function checkQuota(cost = 1) {
       notifyAdminQuotaExceeded(userId, req.user.email || userId, quota);
       return res.status(429).json({
         error:     'quota_exceeded',
-        message:   `Monthly limit reached (${quota} analyses). Contact us at eleveaicontact@gmail.com to increase your limit.`,
+        message:   `Analysis limit reached (${quota} analyses total). Contact us at eleveaicontact@gmail.com to increase your limit.`,
         used, quota, remaining: Math.max(0, quota - used),
       });
     }
@@ -224,19 +219,16 @@ app.get('/api/supabase-config', (_, res) => {
 
 // ── Quota & Admin endpoints ───────────────────────────────────────────────────
 
-// User: fetch own quota status for this calendar month
+// User: fetch own quota status (lifetime usage)
 app.get('/api/quota-status', verifyAuth, async (req, res) => {
   const defaultQuota = await getDefaultQuota();
   if (!supabaseAdmin) return res.json({ used: 0, quota: defaultQuota, remaining: defaultQuota });
   const userId = req.user.id;
-  const { data: profile } = await supabaseAdmin.from('profiles').select('monthly_quota').eq('id', userId).single();
-  const quota = profile?.monthly_quota ?? defaultQuota;
-  const now        = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+  const { data: profile } = await supabaseAdmin.from('profiles').select('quota').eq('id', userId).single();
+  const quota = profile?.quota ?? defaultQuota;
   const { count }  = await supabaseAdmin.from('analyses')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId).gte('created_at', monthStart).lt('created_at', monthEnd);
+    .eq('user_id', userId);
   const used = count ?? 0;
   res.json({ used, quota, remaining: quota - used });
 });
@@ -254,7 +246,7 @@ app.get('/api/admin/usage', verifyAuth, async (req, res) => {
   const month      = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const [{ data: profiles }, { data: monthlyRows }, { data: allRows }] = await Promise.all([
-    supabaseAdmin.from('profiles').select('id,email,role,monthly_quota,created_at').order('created_at'),
+    supabaseAdmin.from('profiles').select('id,email,role,quota,created_at').order('created_at'),
     supabaseAdmin.from('analyses').select('user_id,type').gte('created_at', monthStart).lt('created_at', monthEnd),
     supabaseAdmin.from('analyses').select('user_id'),
   ]);
@@ -271,8 +263,8 @@ app.get('/api/admin/usage', verifyAuth, async (req, res) => {
     month, defaultQuota: defaultQuota,
     users: (profiles || []).map(p => ({
       id: p.id, email: p.email, role: p.role,
-      quota:          p.monthly_quota ?? defaultQuota,
-      quotaOverride:  p.monthly_quota !== null,
+      quota:          p.quota ?? defaultQuota,
+      quotaOverride:  p.quota !== null,
       thisMonth:      monthMap[p.id] || 0,
       soloThisMonth:  soloMap[p.id]  || 0,
       progressThisMonth: progMap[p.id] || 0,
@@ -282,7 +274,7 @@ app.get('/api/admin/usage', verifyAuth, async (req, res) => {
   });
 });
 
-// Admin: set one user's monthly quota (null = revert to server default)
+// Admin: set one user's lifetime quota (null = revert to server default)
 app.post('/api/admin/set-quota', verifyAuth, express.json({ limit: '1kb' }), async (req, res) => {
   if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase not configured' });
   const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
@@ -291,12 +283,12 @@ app.post('/api/admin/set-quota', verifyAuth, express.json({ limit: '1kb' }), asy
   if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
   if (quota !== null && (typeof quota !== 'number' || quota < 0))
     return res.status(400).json({ error: 'quota must be a non-negative integer or null' });
-  const { error } = await supabaseAdmin.from('profiles').update({ monthly_quota: quota }).eq('id', targetUserId);
+  const { error } = await supabaseAdmin.from('profiles').update({ quota }).eq('id', targetUserId);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
 });
 
-// Admin: bulk reset — set monthly_quota for ALL non-admin users at once
+// Admin: bulk set — set quota for ALL non-admin users at once
 app.post('/api/admin/set-quota-all', verifyAuth, express.json({ limit: '1kb' }), async (req, res) => {
   if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase not configured' });
   const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', req.user.id).single();
@@ -305,7 +297,7 @@ app.post('/api/admin/set-quota-all', verifyAuth, express.json({ limit: '1kb' }),
   if (typeof quota !== 'number' || quota < 0)
     return res.status(400).json({ error: 'quota must be a non-negative integer' });
   const { error, count } = await supabaseAdmin
-    .from('profiles').update({ monthly_quota: quota }).neq('role', 'admin');
+    .from('profiles').update({ quota }).neq('role', 'admin');
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true, updatedCount: count });
 });
