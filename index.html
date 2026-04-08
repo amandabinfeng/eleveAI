@@ -318,6 +318,25 @@ input.field:focus{border-color:var(--navy)}
 .login-disclaimers{margin-top:20px;padding-top:16px;border-top:.5px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:8px;text-align:left}
 .login-disclaimer{font-size:10px;color:rgba(255,255,255,.35);line-height:1.6}
 .login-disclaimer strong{color:rgba(255,255,255,.55);font-weight:500}
+/* ── Landing page (public, pre-login) ── */
+.public-view .sidebar,.public-view #mobile-nav,.public-view header{display:none!important}
+.public-view .content{margin-left:0!important;padding:0!important}
+#view-landing{display:none;min-height:100vh;background:var(--navy);align-items:center;justify-content:center;font-family:var(--font-sans)}
+#view-landing.active{display:flex}
+.landing-wrap{width:100%;max-width:480px;margin:0 auto;padding:48px 24px;text-align:center}
+.landing-brand{font-family:var(--font-serif);font-size:52px;color:#fff;font-style:italic;letter-spacing:.04em;margin-bottom:4px}
+.landing-sub{font-size:10px;color:var(--navy-muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:32px}
+.landing-headline{font-family:var(--font-serif);font-size:26px;color:#fff;font-style:italic;line-height:1.35;margin-bottom:12px}
+.landing-desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:36px}
+.landing-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:32px}
+.landing-card{background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.12);border-radius:16px;padding:24px 16px;cursor:pointer;transition:all .2s;text-align:center}
+.landing-card:hover{background:rgba(255,255,255,.1);transform:translateY(-2px);border-color:rgba(255,255,255,.2)}
+.landing-card-icon{font-size:24px;margin-bottom:10px}
+.landing-card-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px}
+.landing-card-desc{font-size:11px;color:rgba(255,255,255,.45);line-height:1.5}
+.landing-disclaimers{border-top:.5px solid rgba(255,255,255,.1);padding-top:20px;display:flex;flex-direction:column;gap:8px;text-align:left}
+.landing-disclaimer{font-size:10px;color:rgba(255,255,255,.35);line-height:1.6}
+.landing-disclaimer strong{color:rgba(255,255,255,.55);font-weight:500}
 /* ── Admin table ── */
 .admin-table{width:100%;border-collapse:collapse;font-size:12px}
 .admin-table th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);padding:8px 12px;border-bottom:.5px solid var(--border);text-align:left;font-weight:500}
@@ -420,6 +439,36 @@ input.field:focus{border-color:var(--navy)}
     </header>
 
     <div class="content" id="content-area">
+
+      <!-- ── Landing (public, shown before login) ── -->
+      <div id="view-landing">
+        <div class="landing-wrap">
+          <div class="landing-brand">Élevé</div>
+          <div class="landing-sub">AI Coach</div>
+          <div class="landing-headline">Upload your performance.<br>Get expert AI feedback.</div>
+          <div class="landing-desc">AI Vision watches your full ballet video and returns coaching-grade feedback on technique, artistry, and stage presence — scored across 13 competition criteria.</div>
+          <div class="landing-cards">
+            <div class="landing-card" onclick="requireAuth('analysis')">
+              <div class="landing-card-icon">🎬</div>
+              <div class="landing-card-title">Solo Analysis</div>
+              <div class="landing-card-desc">Upload one video for a full scored analysis with clickable timestamps</div>
+            </div>
+            <div class="landing-card" onclick="requireAuth('progress')">
+              <div class="landing-card-icon">📈</div>
+              <div class="landing-card-title">Progress Tracking</div>
+              <div class="landing-card-desc">Compare two performances over time to see what improved</div>
+            </div>
+          </div>
+          <button class="btn-google" onclick="signInWithGoogle()" style="margin-bottom:0">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continue with Google
+          </button>
+          <div class="landing-disclaimers" style="margin-top:20px">
+            <div class="landing-disclaimer"><strong>AI analysis may not be fully accurate.</strong> Élevé AI uses artificial intelligence, which can make errors. Always review feedback with a qualified ballet instructor before making changes to your training.</div>
+            <div class="landing-disclaimer"><strong>You are responsible for the videos you upload.</strong> By uploading a video, you confirm that you own it or have the necessary rights and permissions to share it. Please do not upload videos of others without their consent.</div>
+          </div>
+        </div>
+      </div>
 
       <!-- ── Dashboard ── -->
       <div class="view active" id="view-dashboard">
@@ -946,7 +995,15 @@ const viewTitles = {
   profile:   ['Profile','Your history and settings'],
   admin:     ['Admin Panel','All users and analyses'],
 };
+function requireAuth(viewId) {
+  if (!S.user) { showLoginOverlay(); return; }
+  showView(viewId, null);
+}
 function showView(id, navEl, skipPush) {
+  // Auth guard: send unauthenticated users to login overlay
+  if (!S.user && id !== 'landing') { showLoginOverlay(); return; }
+  // Toggle public-view body class (hides sidebar/topbar on landing)
+  document.body.classList.toggle('public-view', id === 'landing');
   // Pause all videos when navigating away so audio doesn't continue in background
   document.querySelectorAll('video').forEach(v => { v.pause(); });
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -2495,6 +2552,10 @@ async function onSignedIn(session) {
   S.user      = session.user;
   S.authToken = session.access_token;
   hideLoginOverlay();
+  // If user just signed in from the landing page, go to dashboard
+  if (document.getElementById('view-landing')?.classList.contains('active')) {
+    showView('dashboard');
+  }
 
   // Update UI with user info
   const email   = session.user.email || '';
@@ -2718,7 +2779,7 @@ async function initApp() {
   if (session) {
     await onSignedIn(session);
   } else {
-    showLoginOverlay();
+    showView('landing');
   }
 }
 
