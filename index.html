@@ -975,7 +975,11 @@ function showView(id, navEl, skipPush) {
   if (id === 'admin') loadAdminData();
   if (!skipPush) window.history.pushState({view: id}, '');
 }
-window.addEventListener('popstate', e => { showView(e.state?.view || 'dashboard', null, true); });
+window.addEventListener('popstate', e => {
+  if (e.state?.loginOverlay) { hideLoginOverlay(); return; }
+  if (document.getElementById('login-overlay').style.display === 'flex') { hideLoginOverlay(); return; }
+  showView(e.state?.view || 'dashboard', null, true);
+});
 
 // ── Connection check ───────────────────────────────────────────────────────
 async function checkConnection(showAlert) {
@@ -2470,6 +2474,7 @@ async function extractFramesIsolatedFrom(file, startOffset) {
 // ── Supabase Auth ────────────────────────────────────────────────────────────
 function showLoginOverlay() {
   document.getElementById('login-overlay').style.display = 'flex';
+  window.history.pushState({ loginOverlay: true }, '');
 }
 function hideLoginOverlay() {
   document.getElementById('login-overlay').style.display = 'none';
