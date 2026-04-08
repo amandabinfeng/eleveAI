@@ -32,7 +32,7 @@ try {
 }
 
 const app               = express();
-const PORT              = 3001;
+const PORT              = process.env.PORT || 3001;
 const GEMINI_KEY        = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL      = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 const FALLBACK_QUOTA    = 5;   // used only if DB is unreachable
@@ -353,6 +353,9 @@ if (GoogleGenerativeAI) {
       if (!GEMINI_KEY) throw new Error('GEMINI_API_KEY not set');
 
       send({ status: 'analyzing', message: 'Analysing performance with AI…' });
+      const keepalive = setInterval(() => {
+        try { res.write(JSON.stringify({ status: 'analyzing', message: 'Still analysing…' }) + '\n'); } catch(_) {}
+      }, 30_000);
 
       const ageFocusMap = {
         'Pre-competitive': `DIVISION: Pre-competitive.
@@ -453,9 +456,11 @@ Return ONLY valid JSON (no markdown, no extra text):
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Gemini returned no JSON: ' + text.slice(0, 200));
 
+      clearInterval(keepalive);
       send({ status: 'done', result: JSON.parse(jsonMatch[0]), usedFallback: usedModel !== GEMINI_MODEL, usedModel });
       res.end();
     } catch (err) {
+      clearInterval(keepalive);
       console.error('Gemini URI analysis error:', err.message);
       send({ status: 'error', error: err.message });
       res.end();
@@ -701,7 +706,7 @@ Return ONLY valid JSON (no markdown, no extra text):
   app.post('/api/gemini-analyze', (_, res) => res.status(503).json({ error: 'Gemini not available — run npm install' }));
 }
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   const isCodespaces = !!process.env.CODESPACE_NAME;
   if (isCodespaces) {
     const fwdUrl = `https://${process.env.CODESPACE_NAME}-${PORT}.app.github.dev`;
@@ -722,3 +727,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('└──────────────────────────────────────────────────────┘\n');
   }
 });
+server.setTimeout(0);
+server.keepAliveTimeout = 0;
