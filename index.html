@@ -2542,7 +2542,8 @@ function onSignedOut() {
   document.getElementById('nav-admin').style.display  = 'none';
   document.getElementById('settings-panel').style.display = 'none';
   document.getElementById('topbar-avatar').textContent = '?';
-  showLoginOverlay();
+  hideLoginOverlay();
+  showView('dashboard');
 }
 
 // ── Admin panel ──────────────────────────────────────────────────────────────
