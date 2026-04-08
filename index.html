@@ -2542,6 +2542,9 @@ function onSignedOut() {
   document.getElementById('nav-admin').style.display  = 'none';
   document.getElementById('settings-panel').style.display = 'none';
   document.getElementById('topbar-avatar').textContent = '?';
+  document.getElementById('topbar-sub').textContent = '';
+  const tqEl = document.getElementById('topbar-quota');
+  if (tqEl) { tqEl.style.display = 'none'; tqEl.textContent = ''; }
   hideLoginOverlay();
   showView('dashboard');
 }
