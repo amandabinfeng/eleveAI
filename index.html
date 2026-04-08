@@ -433,6 +433,7 @@ input.field:focus{border-color:var(--navy)}
             <div class="hero-actions">
               <button class="btn btn-blush" onclick="showView('analysis',null)">Start Analysis →</button>
             </div>
+            <p style="font-size:10px;color:rgba(255,255,255,.4);line-height:1.6;margin-top:12px;max-width:340px">AI analysis may not be fully accurate. Always review feedback with a qualified ballet instructor before making changes to your training.</p>
           </div>
           <div class="hero-figures" style="flex-shrink:0;display:flex;gap:20px;align-items:flex-end;position:relative;z-index:1;opacity:.15">
             <!-- Arabesque — back leg extended high, body leans forward, both arms reaching forward -->
@@ -484,10 +485,6 @@ input.field:focus{border-color:var(--navy)}
             <div class="hero-desc" style="margin-bottom:0;text-align:left;max-width:280px;font-style:normal;color:#fff">AI insights complement your coach — share these reports with your instructor to build the most effective improvement plan.</div>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;padding:14px 18px;background:var(--white);border-radius:12px;border:.5px solid var(--border)">
-          <p style="font-size:11px;color:var(--ink-soft);line-height:1.6"><strong style="color:var(--ink-mid)">AI analysis may not be fully accurate.</strong> Élevé AI uses artificial intelligence, which can make errors. Always review feedback with a qualified ballet instructor before making changes to your training.</p>
-          <p style="font-size:11px;color:var(--ink-soft);line-height:1.6"><strong style="color:var(--ink-mid)">You are responsible for the videos you upload.</strong> By uploading a video, you confirm that you own it or have the necessary rights and permissions to share it. Please do not upload videos of others without their consent.</p>
-        </div>
         <div class="dash-grid">
           <div class="stat-card"><div class="stat-label">Total Analyses</div><div class="stat-val" id="stat-total">0</div><div class="stat-delta" id="stat-delta">Upload your first video</div></div>
           <div class="stat-card"><div class="stat-label">Best Score</div><div class="stat-val" id="stat-best" style="color:var(--blush-dark)">—</div><div class="stat-delta" id="stat-best-lbl" style="color:var(--ink-soft)">No analyses yet</div></div>
@@ -529,6 +526,7 @@ input.field:focus{border-color:var(--navy)}
                     <input type="file" accept="video/mp4,video/quicktime,video/*" onchange="onFileInput(event,'analysis')" id="analysis-file-input"/>
                     <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 480p</div></div>
                   </div>
+                  <p style="font-size:10px;color:var(--ink-soft);line-height:1.6;margin-top:8px">By uploading, you confirm you own this video or have the rights to share it. Do not upload videos of others without consent.</p>
                   <div id="video-preview-wrap" style="display:none" class="video-wrap">
                     <video id="video-preview" controls playsinline></video>
                     <div class="video-badge">Preview</div>
@@ -719,6 +717,7 @@ input.field:focus{border-color:var(--navy)}
               </div>
             </div>
           </div>
+          <p style="font-size:10px;color:var(--ink-soft);line-height:1.6;margin-bottom:12px">By uploading, you confirm you own these videos or have the rights to share them. Do not upload videos of others without consent.</p>
           <div class="panel" style="margin-bottom:16px">
             <div class="panel-head"><div class="panel-title">Performance details</div></div>
             <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
