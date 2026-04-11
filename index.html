@@ -257,6 +257,7 @@ input.field:focus{border-color:var(--navy)}
   .content{padding:16px}
   #prog-upload > div:nth-child(2){grid-template-columns:1fr !important}
   #prog-upload > div:nth-child(3) .panel-body{display:flex !important;flex-direction:column;gap:10px}
+  .hero-disclaimer{white-space:normal !important}
 }
 @media(max-width:480px){
   .sidebar{display:none}
@@ -433,7 +434,7 @@ input.field:focus{border-color:var(--navy)}
             <div class="hero-actions">
               <button class="btn btn-blush" onclick="showView('analysis',null)">Start Analysis →</button>
             </div>
-            <p style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.7;margin-top:12px;max-width:420px">AI analysis may not be fully accurate — always review feedback with your instructor to build the most effective improvement plan.</p>
+            <p class="hero-disclaimer" style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.7;margin-top:12px;white-space:nowrap">AI analysis may not be fully accurate — always review feedback with your instructor.</p>
           </div>
           <div class="hero-figures" style="flex-shrink:0;display:flex;gap:20px;align-items:flex-end;position:relative;z-index:1;opacity:.15">
             <!-- Arabesque — back leg extended high, body leans forward, both arms reaching forward -->
