@@ -1334,7 +1334,7 @@ async function handleFile(file, slot) {
     if (file.size > COMPRESS_MAX) {
       const origMB = (file.size / 1024 / 1024 / 1024).toFixed(2);
       document.getElementById('drop-zone').classList.add('has-file');
-      document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--ink-soft)">${origMB}GB — uploading original directly to Gemini</div>`;
+      document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--ink-soft)">${origMB}GB — uploading original directly to AI</div>`;
     } else if (file.size > COMPRESS_MIN) {
       const origMB = (file.size / 1024 / 1024).toFixed(0);
       document.getElementById('drop-zone').classList.add('has-file');
