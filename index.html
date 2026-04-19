@@ -524,7 +524,7 @@ input.field:focus{border-color:var(--navy)}
                 <div class="panel-body">
                   <div class="drop-zone" id="drop-zone" ondragover="onDrag(event,'drop-zone',true)" ondragleave="onDrag(event,'drop-zone',false)" ondrop="onDrop(event,'analysis')">
                     <input type="file" accept="video/mp4,video/quicktime,video/*" onchange="onFileInput(event,'analysis')" id="analysis-file-input"/>
-                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 480p</div></div>
+                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 360p</div></div>
                   </div>
                   <p style="font-size:10px;color:var(--ink-soft);line-height:1.6;margin-top:8px">By uploading, you confirm you own this video or have the rights to share it. Do not upload videos of others without consent.</p>
                   <div id="video-preview-wrap" style="display:none" class="video-wrap">
@@ -1306,9 +1306,9 @@ async function compressVideo(file, onProgress) {
   ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
   await ffmpeg.run(
     '-i', 'input.mp4',
-    '-vf', 'scale=-2:480',          // simpler filter — works reliably in wasm
+    '-vf', 'scale=-2:360',          // simpler filter — works reliably in wasm
     '-r', '24',
-    '-c:v', 'libx264', '-crf', '30', '-preset', 'ultrafast',
+    '-c:v', 'libx264', '-crf', '35', '-preset', 'ultrafast',
     '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart',
     'output.mp4'
   );
@@ -1320,7 +1320,7 @@ async function compressVideo(file, onProgress) {
   const safeData = data.slice();
   if (safeData.byteLength < 1024) throw new Error(`FFmpeg produced empty output (${safeData.byteLength} bytes) — input codec may not be supported`);
   const sizeMB = (safeData.byteLength / 1024 / 1024).toFixed(1);
-  return { file: new File([safeData], file.name.replace(/\.[^.]+$/, '_480p.mp4'), { type: 'video/mp4' }), sizeMB };
+  return { file: new File([safeData], file.name.replace(/\.[^.]+$/, '_360p.mp4'), { type: 'video/mp4' }), sizeMB };
 }
 
 // ── File handling ──────────────────────────────────────────────────────────
@@ -1329,12 +1329,12 @@ function onDrag(e, zoneId, over) { e.preventDefault(); document.getElementById(z
 function onDrop(e, slot) { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) handleFile(f, slot); }
 async function handleFile(file, slot) {
   if (slot === 'analysis') {
-    const SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
+    const SIZE_LIMIT = 20 * 1024 * 1024; // 20MB
     if (file.size > SIZE_LIMIT) {
       const origMB = (file.size / 1024 / 1024).toFixed(0);
       document.getElementById('drop-zone').classList.add('has-file');
       document.getElementById('drop-content').innerHTML = `
-        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Compressing to 480p…</div>
+        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">Compressing to 360p…</div>
         <div style="font-size:11px;color:var(--ink-soft);margin-bottom:12px">${origMB}MB detected — reducing for faster AI upload</div>
         <div class="progress-track" style="margin-bottom:6px"><div class="progress-fill" id="compress-bar" style="width:0%"></div></div>
         <div id="compress-pct" style="font-size:11px;color:var(--ink-soft)">Loading compressor… this may take a few minutes</div>`;
@@ -1347,7 +1347,7 @@ async function handleFile(file, slot) {
           if (lbl) lbl.textContent = `${pct}% — compressing (may take a few minutes for large files)`;
         });
         file = compressed;
-        document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">Compressed to ${sizeMB}MB (480p)</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
+        document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">Compressed to ${sizeMB}MB (360p)</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
       } catch(e) {
         console.warn('Compression failed, using original:', e.message);
         document.getElementById('drop-content').innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div><div class="drop-title" style="color:var(--gold-dark)">Compression failed — uploading original</div><div class="drop-hint" style="color:var(--ink-soft)">${e.message?.slice(0,80) || 'Unknown error'}</div>`;
@@ -1364,7 +1364,7 @@ async function handleFile(file, slot) {
     document.getElementById('video-preview').src = S.analysisVideoURL;
     document.getElementById('analysis-submit-btn').disabled = false;
   } else if (slot === 'prog1' || slot === 'prog2') {
-    const SIZE_LIMIT = 50 * 1024 * 1024;
+    const SIZE_LIMIT = 20 * 1024 * 1024; // 20MB
     const slotNum   = slot === 'prog1' ? '1' : '2';
     const labelEl   = document.getElementById(`prog${slotNum}-label`);
     const slotEl    = document.getElementById(`prog-slot-${slotNum}`);
@@ -1829,7 +1829,7 @@ function resetAnalysis() {
   if (reportVid) { reportVid.pause(); reportVid.src = ''; }
   if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL); S.analysisVideoURL = '';
   document.getElementById('drop-zone').classList.remove('has-file');
-  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 480p</div>`;
+  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 360p</div>`;
   document.getElementById('video-preview-wrap').style.display = 'none';
   document.getElementById('analysis-submit-btn').disabled = true;
   document.getElementById('analysis-error').innerHTML = '';
