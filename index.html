@@ -524,7 +524,7 @@ input.field:focus{border-color:var(--navy)}
                 <div class="panel-body">
                   <div class="drop-zone" id="drop-zone" ondragover="onDrag(event,'drop-zone',true)" ondragleave="onDrag(event,'drop-zone',false)" ondrop="onDrop(event,'analysis')">
                     <input type="file" accept="video/mp4,video/quicktime,video/*" onchange="onFileInput(event,'analysis')" id="analysis-file-input"/>
-                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 360p</div></div>
+                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · files up to 2GB supported · auto-compressed when 20–200MB</div></div>
                   </div>
                   <p style="font-size:10px;color:var(--ink-soft);line-height:1.6;margin-top:8px">By uploading, you confirm you own this video or have the rights to share it. Do not upload videos of others without consent.</p>
                   <div id="video-preview-wrap" style="display:none" class="video-wrap">
@@ -1329,8 +1329,13 @@ function onDrag(e, zoneId, over) { e.preventDefault(); document.getElementById(z
 function onDrop(e, slot) { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) handleFile(f, slot); }
 async function handleFile(file, slot) {
   if (slot === 'analysis') {
-    const SIZE_LIMIT = 20 * 1024 * 1024; // 20MB
-    if (file.size > SIZE_LIMIT) {
+    const COMPRESS_MIN = 20 * 1024 * 1024;   // 20MB — below this, upload as-is
+    const COMPRESS_MAX = 200 * 1024 * 1024;  // 200MB — above this, skip WASM and upload raw
+    if (file.size > COMPRESS_MAX) {
+      const origMB = (file.size / 1024 / 1024 / 1024).toFixed(2);
+      document.getElementById('drop-zone').classList.add('has-file');
+      document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--ink-soft)">${origMB}GB — uploading original directly to Gemini</div>`;
+    } else if (file.size > COMPRESS_MIN) {
       const origMB = (file.size / 1024 / 1024).toFixed(0);
       document.getElementById('drop-zone').classList.add('has-file');
       document.getElementById('drop-content').innerHTML = `
@@ -1357,19 +1362,23 @@ async function handleFile(file, slot) {
     if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL);
     S.analysisVideoURL = URL.createObjectURL(file);
     document.getElementById('drop-zone').classList.add('has-file');
-    if (file.size <= SIZE_LIMIT) {
+    if (file.size <= COMPRESS_MIN) {
       document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
     }
     document.getElementById('video-preview-wrap').style.display = 'block';
     document.getElementById('video-preview').src = S.analysisVideoURL;
     document.getElementById('analysis-submit-btn').disabled = false;
   } else if (slot === 'prog1' || slot === 'prog2') {
-    const SIZE_LIMIT = 20 * 1024 * 1024; // 20MB
+    const COMPRESS_MIN = 20 * 1024 * 1024;   // 20MB
+    const COMPRESS_MAX = 200 * 1024 * 1024;  // 200MB
     const slotNum   = slot === 'prog1' ? '1' : '2';
     const labelEl   = document.getElementById(`prog${slotNum}-label`);
     const slotEl    = document.getElementById(`prog-slot-${slotNum}`);
     slotEl.classList.add('has-file');
-    if (file.size > SIZE_LIMIT) {
+    if (file.size > COMPRESS_MAX) {
+      const origGB = (file.size / 1024 / 1024 / 1024).toFixed(2);
+      if (labelEl) labelEl.textContent = `✓ ${file.name.slice(0,20)} (${origGB}GB — uploading raw)`;
+    } else if (file.size > COMPRESS_MIN) {
       const origMB = (file.size / 1024 / 1024).toFixed(0);
       if (labelEl) labelEl.textContent = `Compressing ${origMB}MB…`;
       document.getElementById('prog-submit-btn').disabled = true;
@@ -1829,7 +1838,7 @@ function resetAnalysis() {
   if (reportVid) { reportVid.pause(); reportVid.src = ''; }
   if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL); S.analysisVideoURL = '';
   document.getElementById('drop-zone').classList.remove('has-file');
-  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · large files auto-compressed to 360p</div>`;
+  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · files up to 2GB supported · auto-compressed when 20–200MB</div>`;
   document.getElementById('video-preview-wrap').style.display = 'none';
   document.getElementById('analysis-submit-btn').disabled = true;
   document.getElementById('analysis-error').innerHTML = '';
