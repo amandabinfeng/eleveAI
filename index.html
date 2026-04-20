@@ -603,7 +603,7 @@ input.field:focus{border-color:var(--navy)}
                     <div class="frames-grid" id="frames-grid"></div>
                   </div>
                   <div style="margin-top:16px;text-align:right">
-                    <button class="btn btn-ghost" id="cancel-analysis-btn" onclick="cancelAnalysis()" style="font-size:12px;color:var(--ink-soft)">Cancel upload</button>
+                    <button class="btn btn-ghost" id="cancel-analysis-btn" onclick="cancelAnalysis()" style="font-size:12px;color:var(--ink-soft)">Cancel</button>
                   </div>
                 </div>
               </div>
@@ -743,6 +743,9 @@ input.field:focus{border-color:var(--navy)}
                 <div class="step-item"><div class="step-dot" id="ps1-dot" style="background:var(--border)"></div><div class="step-label">Uploading earlier performance to AI</div><div class="step-status" id="ps1-st"></div></div>
                 <div class="step-item"><div class="step-dot" id="ps2-dot" style="background:var(--border)"></div><div class="step-label">Uploading recent performance to AI</div><div class="step-status" id="ps2-st"></div></div>
                 <div class="step-item"><div class="step-dot" id="ps3-dot" style="background:var(--border)"></div><div class="step-label">AI comparing both performances</div><div class="step-status" id="ps3-st"></div></div>
+              </div>
+              <div style="margin-top:16px;text-align:right">
+                <button class="btn btn-ghost" id="cancel-progress-btn" onclick="cancelProgress()" style="font-size:12px;color:var(--ink-soft)">Cancel</button>
               </div>
             </div>
           </div>
@@ -1531,6 +1534,9 @@ async function startAnalysis() {
 function cancelAnalysis() {
   if (S.abortController) S.abortController.abort();
 }
+function cancelProgress() {
+  if (S.progressAbortController) S.progressAbortController.abort();
+}
 
 async function startGeminiAnalysis() {
   if (!S.isAdmin && S.quotaRemaining <= 0) {
@@ -1660,7 +1666,7 @@ async function startGeminiAnalysis() {
     S.abortController = null;
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-upload').style.display = 'block';
-    if (err.name === 'AbortError') return;
+    if (err.name === 'AbortError') { refreshQuotaStatus(); return; }
     showError('analysis-error', err.message);
   }
 }
@@ -1880,10 +1886,12 @@ async function startProgress() {
   document.getElementById('prog-results').style.display = 'none';
 
   let geminiKey, file1Name, file2Name;
+  S.progressAbortController = new AbortController();
+  const signal = S.progressAbortController.signal;
 
   try {
     // Get Gemini key once
-    const keyResp = await fetch('/api/gemini-key');
+    const keyResp = await fetch('/api/gemini-key', { signal });
     if (!keyResp.ok) throw new Error('Could not get Gemini API key from server');
     ({ key: geminiKey } = await keyResp.json());
 
@@ -1905,7 +1913,7 @@ async function startProgress() {
       [metaBytes, dataBytes, fileBytes, endBytes].forEach(b => { body.set(b, off); off += b.length; });
       const upResp = await fetch(
         `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=multipart&key=${geminiKey}`,
-        { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body }
+        { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body, signal }
       );
       if (!upResp.ok) { const t = await upResp.text(); throw new Error(`Upload failed (${upResp.status}): ${t.slice(0,200)}`); }
       const upData = await upResp.json();
@@ -1916,7 +1924,7 @@ async function startProgress() {
       while (fileState === 'PROCESSING' && pollCount < 36) {
         await sleep(5000); pollCount++;
         setProc('prog-proc-bar','prog-proc-pct','prog-proc-label', stepNum === 1 ? 5 + pollCount : 40 + pollCount, `Processing ${label}… (${pollCount * 5}s)`);
-        const pollData = await (await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiKey}`)).json();
+        const pollData = await (await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiKey}`, { signal })).json();
         fileState = pollData.state;
       }
       if (fileState !== 'ACTIVE') throw new Error(`File processing failed: ${fileState}`);
@@ -1942,7 +1950,8 @@ async function startProgress() {
     const compareResp = await fetch('/api/gemini-compare-uri', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(S.authToken ? { 'Authorization': 'Bearer ' + S.authToken } : {}) },
-      body: JSON.stringify({ fileUri1: uri1, mimeType1: mt1, fileUri2: uri2, mimeType2: mt2, context1, context2, ageGroup, style, variationName })
+      body: JSON.stringify({ fileUri1: uri1, mimeType1: mt1, fileUri2: uri2, mimeType2: mt2, context1, context2, ageGroup, style, variationName }),
+      signal
     });
     if (!compareResp.ok) {
       const t = await compareResp.text();
@@ -1971,8 +1980,10 @@ async function startProgress() {
     updateDashboard();
 
   } catch(err) {
+    S.progressAbortController = null;
     document.getElementById('prog-processing').style.display = 'none';
     document.getElementById('prog-upload').style.display = 'block';
+    if (err.name === 'AbortError') { refreshQuotaStatus(); return; }
     showError('prog-error', err.message);
     ['1','2','3'].forEach(n => { const d=document.getElementById(`ps${n}-dot`); const st=document.getElementById(`ps${n}-st`); if(d)d.style.background='var(--border)'; if(st)st.textContent=''; });
   } finally {
