@@ -1338,9 +1338,11 @@ async function handleFile(file, slot) {
     const COMPRESS_MIN = 20 * 1024 * 1024;   // 20MB — below this, upload as-is
     const COMPRESS_MAX = 200 * 1024 * 1024;  // 200MB — above this, skip WASM and upload raw
     if (file.size > COMPRESS_MAX) {
-      const origMB = (file.size / 1024 / 1024 / 1024).toFixed(2);
+      const origGB = (file.size / 1024 / 1024 / 1024).toFixed(2);
       document.getElementById('drop-zone').classList.add('has-file');
-      document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--ink-soft)">${origMB}GB — uploading original directly to AI</div>`;
+      { const dc = document.getElementById('drop-content');
+        dc.innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)"></div><div class="drop-hint" style="color:var(--ink-soft)">${origGB}GB — uploading original directly to AI</div>`;
+        dc.querySelector('.drop-title').textContent = file.name; }
     } else if (file.size > COMPRESS_MIN) {
       const origMB = (file.size / 1024 / 1024).toFixed(0);
       document.getElementById('drop-zone').classList.add('has-file');
@@ -1361,7 +1363,9 @@ async function handleFile(file, slot) {
         document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">Compressed to ${sizeMB}MB (360p)</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
       } catch(e) {
         console.warn('Compression failed, using original:', e.message);
-        document.getElementById('drop-content').innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div><div class="drop-title" style="color:var(--gold-dark)">Compression failed — uploading original</div><div class="drop-hint" style="color:var(--ink-soft)">${e.message?.slice(0,80) || 'Unknown error'}</div>`;
+        { const dc = document.getElementById('drop-content');
+          dc.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div><div class="drop-title" style="color:var(--gold-dark)">Compression failed — uploading original</div><div class="drop-hint" style="color:var(--ink-soft)"></div>`;
+          dc.querySelector('.drop-hint').textContent = (e.message?.slice(0,80) || 'Unknown error'); }
       }
     }
     S.analysisFile = file;
@@ -1369,7 +1373,9 @@ async function handleFile(file, slot) {
     S.analysisVideoURL = URL.createObjectURL(file);
     document.getElementById('drop-zone').classList.add('has-file');
     if (file.size <= COMPRESS_MIN) {
-      document.getElementById('drop-content').innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)">${file.name}</div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
+      { const dc = document.getElementById('drop-content');
+        dc.innerHTML = `<div style="font-size:28px;margin-bottom:8px">✓</div><div class="drop-title" style="color:var(--green)"></div><div class="drop-hint" style="color:var(--green)">Ready — click Analyse Video</div>`;
+        dc.querySelector('.drop-title').textContent = file.name; }
     }
     document.getElementById('video-preview-wrap').style.display = 'block';
     document.getElementById('video-preview').src = S.analysisVideoURL;
