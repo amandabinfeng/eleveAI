@@ -602,6 +602,9 @@ input.field:focus{border-color:var(--navy)}
                     <div style="font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 8px;font-weight:500">Extracted frames</div>
                     <div class="frames-grid" id="frames-grid"></div>
                   </div>
+                  <div style="margin-top:16px;text-align:right">
+                    <button class="btn btn-ghost" id="cancel-analysis-btn" onclick="cancelAnalysis()" style="font-size:12px;color:var(--ink-soft)">Cancel upload</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1525,6 +1528,10 @@ async function startAnalysis() {
   }
 }
 
+function cancelAnalysis() {
+  if (S.abortController) S.abortController.abort();
+}
+
 async function startGeminiAnalysis() {
   if (!S.isAdmin && S.quotaRemaining <= 0) {
     document.getElementById('analysis-error').innerHTML = `<div class="banner banner-error" style="margin-bottom:14px">
@@ -1537,6 +1544,8 @@ async function startGeminiAnalysis() {
   document.getElementById('analysis-upload').style.display = 'none';
   document.getElementById('analysis-processing').style.display = 'block';
   document.getElementById('analysis-report').style.display = 'none';
+  S.abortController = new AbortController();
+  const signal = S.abortController.signal;
   try {
     const style    = S.style;
     const desc     = document.getElementById('analysis-desc').value || '';
@@ -1570,7 +1579,7 @@ async function startGeminiAnalysis() {
 
     const uploadResp = await fetch(
       `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=multipart&key=${geminiKey}`,
-      { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body }
+      { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body, signal }
     );
     if (!uploadResp.ok) {
       const t = await uploadResp.text();
@@ -1588,7 +1597,7 @@ async function startGeminiAnalysis() {
       await sleep(5000);
       pollCount++;
       setProc('proc-bar','proc-pct','proc-label', 30 + Math.min(pollCount * 2, 20), `Processing… (${pollCount * 5}s)`);
-      const pollResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiKey}`);
+      const pollResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${geminiKey}`, { signal });
       const pollData = await pollResp.json();
       fileState = pollData.state;
     }
@@ -1599,7 +1608,8 @@ async function startGeminiAnalysis() {
     const resp = await fetch('/api/gemini-analyze-uri', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(S.authToken ? { 'Authorization': 'Bearer ' + S.authToken } : {}) },
-      body: JSON.stringify({ fileUri, mimeType, style, desc, ageGroup })
+      body: JSON.stringify({ fileUri, mimeType, style, desc, ageGroup }),
+      signal
     });
     if (!resp.ok) {
       const t = await resp.text();
@@ -1647,8 +1657,10 @@ async function startGeminiAnalysis() {
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-report').style.display = 'block';
   } catch(err) {
+    S.abortController = null;
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-upload').style.display = 'block';
+    if (err.name === 'AbortError') return;
     showError('analysis-error', err.message);
   }
 }
