@@ -524,7 +524,7 @@ input.field:focus{border-color:var(--navy)}
                 <div class="panel-body">
                   <div class="drop-zone" id="drop-zone" ondragover="onDrag(event,'drop-zone',true)" ondragleave="onDrag(event,'drop-zone',false)" ondrop="onDrop(event,'analysis')">
                     <input type="file" accept="video/mp4,video/quicktime,video/*" onchange="onFileInput(event,'analysis')" id="analysis-file-input"/>
-                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · files up to 2GB supported · auto-compressed when 20–200MB</div></div>
+                    <div id="drop-content"><span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · files up to 2GB supported · auto-compressed when 20–200MB</div><div class="drop-hint" style="margin-top:4px">Tip: export at 1080p or lower for faster uploads</div></div>
                   </div>
                   <p style="font-size:10px;color:var(--ink-soft);line-height:1.6;margin-top:8px">By uploading, you confirm you own this video or have the rights to share it. Do not upload videos of others without consent.</p>
                   <div id="video-preview-wrap" style="display:none" class="video-wrap">
@@ -1838,7 +1838,7 @@ function resetAnalysis() {
   if (reportVid) { reportVid.pause(); reportVid.src = ''; }
   if (S.analysisVideoURL) URL.revokeObjectURL(S.analysisVideoURL); S.analysisVideoURL = '';
   document.getElementById('drop-zone').classList.remove('has-file');
-  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · files up to 2GB supported · auto-compressed when 20–200MB</div>`;
+  document.getElementById('drop-content').innerHTML = `<span class="drop-icon">🎬</span><div class="drop-title">Drop your video here or click to browse</div><div class="drop-hint">MP4 or MOV · any length · files up to 2GB supported · auto-compressed when 20–200MB</div><div class="drop-hint" style="margin-top:4px">Tip: export at 1080p or lower for faster uploads</div>`;
   document.getElementById('video-preview-wrap').style.display = 'none';
   document.getElementById('analysis-submit-btn').disabled = true;
   document.getElementById('analysis-error').innerHTML = '';
