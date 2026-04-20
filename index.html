@@ -1664,9 +1664,9 @@ async function startGeminiAnalysis() {
     document.getElementById('analysis-report').style.display = 'block';
   } catch(err) {
     S.abortController = null;
+    if (err.name === 'AbortError') { refreshQuotaStatus(); resetAnalysis(); return; }
     document.getElementById('analysis-processing').style.display = 'none';
     document.getElementById('analysis-upload').style.display = 'block';
-    if (err.name === 'AbortError') { refreshQuotaStatus(); return; }
     showError('analysis-error', err.message);
   }
 }
@@ -1983,7 +1983,7 @@ async function startProgress() {
     S.progressAbortController = null;
     document.getElementById('prog-processing').style.display = 'none';
     document.getElementById('prog-upload').style.display = 'block';
-    if (err.name === 'AbortError') { refreshQuotaStatus(); return; }
+    if (err.name === 'AbortError') { refreshQuotaStatus(); resetProgress(); return; }
     showError('prog-error', err.message);
     ['1','2','3'].forEach(n => { const d=document.getElementById(`ps${n}-dot`); const st=document.getElementById(`ps${n}-st`); if(d)d.style.background='var(--border)'; if(st)st.textContent=''; });
   } finally {
